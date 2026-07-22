@@ -8,6 +8,7 @@ export function isAdminAuthed(cookies: AstroCookies): boolean {
   return cookies.get(COOKIE_NAME)?.value === SESSION_VALUE;
 }
 
+
 export function setAdminSession(cookies: AstroCookies) {
   cookies.set(COOKIE_NAME, SESSION_VALUE, {
     path: '/',
