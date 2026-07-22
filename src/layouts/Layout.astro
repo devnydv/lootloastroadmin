@@ -1,0 +1,209 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+  navBadge?: string;
+}
+
+const {
+  title = 'LootLo - Curated Fashion Deals',
+  description = "Discover the best fashion deals with LootLo. Our curated picks connect you to top stores with pre-filtered links, ensuring a smarter shopping experience. Shop confidently with our trusted recommendations and affiliate links.",
+  navBadge = 'Deals',
+} = Astro.props;
+
+const path = Astro.url.pathname;
+function isActive(href: string) {
+  if (href === '/') return path === '/';
+  return path === href || path.startsWith(`${href}/`);
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: title,
+  description,
+  url: Astro.url.href,
+};
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>{title}</title>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7849940869728739" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="shortcut icon" type="image/x-icon" href="/icon.webp" />
+  <meta name="description" content={description} />
+  <meta name="keywords" content="fashion deals, curated picks, top stores, pre-filtered links, smart shopping, affiliate links, trusted recommendations" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content="https://lootlo.site/lootlo.png" />
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <style>
+    .cost-indicator { font-size: .72rem; font-weight: 700; letter-spacing: -.5px; color: var(--gold, #e8c97e); margin-right: 2px; flex-shrink: 0; white-space: nowrap; }
+    .cost-dim { opacity: .2; }
+    nav a { text-decoration: none; color: inherit; }
+  </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-left">
+      <div class="hamburger-btn" id="hamburger-btn">☰</div>
+      <a href="/" class="logo-text">Loot<span>Lo</span></a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-badge">{navBadge}</div>
+    </div>
+  </nav>
+
+  <div id="menu-overlay">
+    <div class="menu-panel">
+      <div class="menu-header">
+        <div class="logo-text">Loot<span>Lo</span></div>
+        <div class="menu-close" id="menu-close">✕</div>
+      </div>
+      <a class:list={['menu-item', { active: isActive('/') }]} href="/"><span class="menu-item-icon">🏠</span> Home</a>
+      <a class:list={['menu-item', { active: isActive('/trending') }]} href="/trending"><span class="menu-item-icon">🔥</span> Trending</a>
+      <a class:list={['menu-item', { active: isActive('/toppicks') }]} href="/toppicks"><span class="menu-item-icon">⭐</span> Top Picks</a>
+      <a class:list={['menu-item', { active: isActive('/history') }]} href="/history"><span class="menu-item-icon">🕐</span> History</a>
+      <a class:list={['menu-item', { active: isActive('/privacy') }]} href="/privacy"><span class="menu-item-icon">🔒</span> Privacy Policy</a>
+    </div>
+  </div>
+
+  <main class="main">
+    <slot />
+
+    <div class="about-panel">
+      <h2>Why Trust <span>LootLo</span>?</h2>
+      <p>We manually research each category and handpick stores with strong return policies, genuine reviews, and
+        competitive pricing. Our <strong style="color:var(--gold)">★ Top Pick</strong> goes to the best store — not the
+        highest-paying one.</p>
+    </div>
+
+    <div class="hiw-section">
+      <h2>How <span>It Works</span></h2>
+      <div class="hiw-grid">
+        <div class="hiw-card">
+          <div class="hiw-num">01</div>
+          <h3>Pick a Category</h3>
+          <p>Men, women, kids, shoes, accessories — all organised clearly.</p>
+        </div>
+        <div class="hiw-card">
+          <div class="hiw-num">02</div>
+          <h3>Pre-Filtered Links</h3>
+          <p>Land directly in the right section — no hunting needed.</p>
+        </div>
+        <div class="hiw-card">
+          <div class="hiw-num">03</div>
+          <h3>Top Pick Badge</h3>
+          <p>One ★ Top Pick per card — the best overall option for value.</p>
+        </div>
+        <div class="hiw-card">
+          <div class="hiw-num">04</div>
+          <h3>Affiliate Links</h3>
+          <p>We earn a small commission — at no extra cost to you.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclosure">
+      <p><strong>Affiliate Disclosure:</strong> LootLo participates in affiliate marketing programs. We may earn a
+        commission when you click a link and make a purchase — at no extra cost to you. Our Top Pick selections are
+        editorially independent.</p>
+    </div>
+
+    <div class="main-footer">
+      <strong>Loot<span>Lo</span></strong><br />
+      © 2026 LootLo · <a href="/privacy">Privacy Policy</a><br />
+      Affiliate links — we may earn a small commission.
+    </div>
+  </main>
+
+  <div id="overlay">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body">
+        <div class="sheet-icon">🛍️</div>
+        <div class="sheet-title">Visiting Store</div>
+        <div class="sheet-store" id="sheet-store-name">–</div>
+        <p class="sheet-note">We've pre-filtered the page for you. You'll land directly in the right section.</p>
+        <div class="progress-wrap">
+          <div class="progress-bar" id="sheet-progress"></div>
+        </div>
+        <p class="sheet-disclaimer">⚡ Affiliate link — LootLo may earn a commission at no extra cost to you.</p>
+        <button class="btn-go" id="btn-go">Continue to Store →</button>
+        <button class="btn-back" id="btn-back">Go back</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Hamburger menu ────────────────────────────────────
+    const menuOverlay = document.getElementById('menu-overlay')!;
+    document.getElementById('hamburger-btn')!.addEventListener('click', () => menuOverlay.classList.add('open'));
+    document.getElementById('menu-close')!.addEventListener('click', () => menuOverlay.classList.remove('open'));
+    menuOverlay.addEventListener('click', (e) => {
+      if (e.target === menuOverlay) menuOverlay.classList.remove('open');
+    });
+
+    // ── Visited (localStorage) ────────────────────────────
+    function getVisited(): Record<string, boolean> {
+      try { return JSON.parse(localStorage.getItem('sv_visited') || '{}'); } catch { return {}; }
+    }
+    function markVisited(key: string) {
+      const v = getVisited();
+      v[key] = true;
+      localStorage.setItem('sv_visited', JSON.stringify(v));
+    }
+
+    // ── Bottom sheet ───────────────────────────────────────
+    let pendingUrl: string | null = null;
+
+    function openSheet(storeName: string, url: string, key: string) {
+      pendingUrl = url;
+      document.getElementById('sheet-store-name')!.textContent = storeName;
+      document.getElementById('overlay')!.classList.add('open');
+      const bar = document.getElementById('sheet-progress') as HTMLElement;
+      bar.style.width = '0%';
+      requestAnimationFrame(() => { bar.style.width = '100%'; });
+      if (key) markVisited(key);
+    }
+
+    function closeSheet() {
+      document.getElementById('overlay')!.classList.remove('open');
+      pendingUrl = null;
+      const bar = document.getElementById('sheet-progress') as HTMLElement;
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      setTimeout(() => { bar.style.transition = 'width 3s linear'; }, 50);
+    }
+
+    // Exposed so the DealsFeed component (rendered per-page) can call these.
+    (window as any).__lootlo = { getVisited, markVisited, openSheet };
+
+    document.getElementById('btn-go')!.addEventListener('click', () => {
+      if (pendingUrl) window.open(pendingUrl, '_blank', 'noopener');
+      closeSheet();
+      document.querySelectorAll('.store-btn').forEach((btn) => {
+        const v = getVisited();
+        const key = (btn as HTMLElement).dataset.key!;
+        if (v[key]) {
+          const nameEl = btn.querySelector('.store-name');
+          if (nameEl && !nameEl.querySelector('.visited-tag')) {
+            const tag = document.createElement('span');
+            tag.className = 'visited-tag';
+            tag.textContent = 'Visited';
+            nameEl.appendChild(tag);
+          }
+        }
+      });
+    });
+    document.getElementById('btn-back')!.addEventListener('click', closeSheet);
+    document.getElementById('overlay')!.addEventListener('click', (e) => {
+      if (e.target === document.getElementById('overlay')) closeSheet();
+    });
+  </script>
+</body>
+</html>

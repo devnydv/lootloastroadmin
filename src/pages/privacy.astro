@@ -1,0 +1,506 @@
+---
+import "../styles/style.css";
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — LootLo</title>
+  <meta name="description" content="How LootLo collects, uses, and protects your information when you use our platform." />
+  <meta name="keywords" content="LootLo, privacy policy, data collection, cookies, affiliate links, user information, data security" />
+  <link rel="shortcut icon" href="/icon.webp" type="image/x-icon">
+  <!-- <link rel="stylesheet" href="style.css" /> -->
+  <style>
+    /* ── PAGE HERO ── */
+    .page-hero { padding: 28px 20px 20px; }
+    .page-hero h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; margin-bottom: 8px; }
+    .page-hero h1 em { font-style: normal; color: var(--gold); }
+    .page-hero p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
+
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--gold-glow); border: 1px solid var(--border-gold);
+      color: var(--gold); font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 20px; margin-bottom: 14px;
+    }
+
+    /* ── LAST UPDATED CHIP ── */
+    .updated-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-dim); font-size: 0.7rem; font-weight: 600;
+      padding: 5px 12px; border-radius: 20px; margin-bottom: 24px;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      margin: 0 20px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .toc-header {
+      background: var(--surface2);
+      padding: 12px 18px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+    }
+    .toc-list {
+      padding: 10px 0;
+    }
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 18px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .toc-item:active { background: var(--surface2); }
+    .toc-num {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--gold);
+      width: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ── SECTIONS ── */
+    .privacy-sections {
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .priv-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: slideUp 0.3s ease both;
+    }
+    .priv-card:nth-child(2)  { animation-delay: 0.05s; }
+    .priv-card:nth-child(3)  { animation-delay: 0.10s; }
+    .priv-card:nth-child(4)  { animation-delay: 0.15s; }
+    .priv-card:nth-child(5)  { animation-delay: 0.20s; }
+    .priv-card:nth-child(6)  { animation-delay: 0.25s; }
+    .priv-card:nth-child(7)  { animation-delay: 0.30s; }
+    .priv-card:nth-child(8)  { animation-delay: 0.35s; }
+
+    .priv-card-header {
+      background: var(--surface2);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .priv-icon-wrap {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+
+    .priv-card-num {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+      margin-bottom: 3px;
+    }
+    .priv-card-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .priv-card-body {
+      padding: 16px 18px;
+    }
+    .priv-card-body p {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+    .priv-card-body p:last-child { margin-bottom: 0; }
+
+    .priv-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .priv-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+    .priv-list li::before {
+      content: "›";
+      color: var(--gold);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .priv-list li:last-child { margin-bottom: 0; }
+
+    /* ── HIGHLIGHT BOX ── */
+    .highlight-box {
+      background: rgba(232,201,126,0.06);
+      border: 1px solid var(--border-gold);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.78rem;
+      color: var(--gold);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .highlight-box:last-child { margin-bottom: 0; }
+
+    /* ── CONTACT CARD ── */
+    .contact-card {
+      margin: 0 20px 28px;
+      background: var(--surface);
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      text-align: center;
+    }
+    .contact-card .contact-icon { font-size: 2rem; margin-bottom: 10px; }
+    .contact-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .contact-card h2 span { color: var(--gold); }
+    .contact-card p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+    .contact-email {
+      display: inline-block;
+      background: var(--gold-glow);
+      border: 1px solid var(--border-gold);
+      color: var(--gold);
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+    }
+
+    /* ── DESKTOP ── */
+    @media (min-width: 768px) {
+      .page-hero {
+        padding: 40px 0 24px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .page-hero h1 { font-size: 2.6rem; }
+      .page-hero p { max-width: 480px; font-size: 0.95rem; }
+
+      .toc { margin: 0 0 24px; }
+
+      .privacy-sections {
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+      .priv-card { display: flex; flex-direction: column; }
+
+      .contact-card { margin: 0 0 28px; }
+    }
+
+    @media (min-width: 1100px) {
+      .privacy-sections { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+
+  <script type="application/json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Privacy Policy — LootLo",
+      "description": "How LootLo collects, uses, and protects your information when you use our platform.",
+      "url": "https://lootlo.com/privacy"
+    }
+  </script>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="nav-left">
+    <div class="hamburger-btn" id="hamburger-btn">☰</div>
+    <div class="logo-text">Loot<span>Lo</span></div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-badge">Privacy</div>
+  </div>
+</nav>
+
+<!-- HAMBURGER MENU OVERLAY -->
+<div id="menu-overlay">
+  <div class="menu-panel">
+    <div class="menu-header">
+      <div class="logo-text">Loot<span>Lo</span></div>
+      <div class="menu-close" id="menu-close">✕</div>
+    </div>
+    <a class="menu-item" href="/">
+      <span class="menu-item-icon">🏠</span> Home
+    </a>
+    <a class="menu-item" href="trending.html">
+      <span class="menu-item-icon">🔥</span> Trending
+    </a>
+    <a class="menu-item" href="toppicks.html">
+      <span class="menu-item-icon">⭐</span> Top Picks
+    </a>
+    <a class="menu-item" href="history.html">
+      <span class="menu-item-icon">🕐</span> History
+    </a>
+    <a class="menu-item active" href="privacy.html">
+      <span class="menu-item-icon">🔒</span> Privacy Policy
+    </a>
+  </div>
+</div>
+
+<main class="main">
+
+  <!-- HERO -->
+  <div class="page-hero">
+    <div class="eyebrow">🔒 Legal</div>
+    <h1>Privacy <em>Policy</em></h1>
+    <p>How LootLo collects, uses, and protects your information when you use our platform.</p>
+    <div class="updated-chip">📅 Last updated: January 2026</div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <div class="toc-header">Contents</div>
+    <div class="toc-list">
+      <a class="toc-item" href="#s1"><span class="toc-num">01</span> Information We Collect</a>
+      <a class="toc-item" href="#s2"><span class="toc-num">02</span> How We Use Your Information</a>
+      <a class="toc-item" href="#s3"><span class="toc-num">03</span> Affiliate Links & Third Parties</a>
+      <a class="toc-item" href="#s4"><span class="toc-num">04</span> Cookies & Tracking</a>
+      <a class="toc-item" href="#s5"><span class="toc-num">05</span> Data Storage & Security</a>
+      <a class="toc-item" href="#s6"><span class="toc-num">06</span> Your Rights</a>
+      <a class="toc-item" href="#s7"><span class="toc-num">07</span> Children's Privacy</a>
+      <a class="toc-item" href="#s8"><span class="toc-num">08</span> Changes to This Policy</a>
+    </div>
+  </div>
+
+  <!-- SECTIONS -->
+  <div class="privacy-sections">
+
+    <!-- 01 -->
+    <div class="priv-card" id="s1">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">📋</div>
+        <div>
+          <div class="priv-card-num">Section 01</div>
+          <div class="priv-card-title">Information We Collect</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>We collect limited information to operate and improve LootLo. This includes:</p>
+        <ul class="priv-list">
+          <!-- <li><strong>Usage data</strong> — pages visited, categories browsed, links clicked, and time spent on the app.</li> -->
+          <!-- <li><strong>Device information</strong> — browser type, operating system, screen resolution, and language settings.</li> -->
+          <!-- <li><strong>Referral data</strong> — the source from which you arrived at LootLo (e.g. search engine, social media).</li> -->
+          <li><strong>Browsing history within the app</strong> — stores and categories you visit, stored locally on your device.</li>
+        </ul>
+        <p>We do <strong>not</strong> collect your name, email address, phone number, or any account credentials unless you voluntarily contact us.</p>
+      </div>
+    </div>
+
+    <!-- 02 -->
+    <div class="priv-card" id="s2">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">⚙️</div>
+        <div>
+          <div class="priv-card-num">Section 02</div>
+          <div class="priv-card-title">How We Use Your Information</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>Information we collect is used solely to improve your experience on LootLo. Specifically, we use it to:</p>
+        <ul class="priv-list">
+          <li>Show you relevant trending categories and personalised Top Picks.</li>
+          <li>Track which store links are most useful so we can surface better recommendations.</li>
+          <li>Diagnose technical issues and improve page performance.</li>
+          <li>Understand aggregate usage patterns (never individual profiling).</li>
+        </ul>
+        <div class="highlight-box">✦ We do not sell, rent, or trade your personal information to any third party for marketing purposes.</div>
+      </div>
+    </div>
+
+    <!-- 03 -->
+    <div class="priv-card" id="s3">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">🔗</div>
+        <div>
+          <div class="priv-card-num">Section 03</div>
+          <div class="priv-card-title">Affiliate Links & Third Parties</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>LootLo uses affiliate links to stores such as Myntra, Levi's, Nykaa Fashion, Decathlon, and others. When you click a store link:</p>
+        <ul class="priv-list">
+          <li>You are directed to a third-party website with its own privacy policy and terms.</li>
+          <li>We may earn a small commission on qualifying purchases — at no extra cost to you.</li>
+          <li>The third-party store may place its own cookies or tracking on your browser.</li>
+        </ul>
+        <p>We are not responsible for the privacy practices of any external website. We encourage you to review the privacy policy of any store you visit through our links.</p>
+        <div class="highlight-box">✦ Affiliate income does not influence our Top Picks or editorial recommendations. Stores cannot pay to be featured.</div>
+      </div>
+    </div>
+
+    <!-- 04 -->
+    <div class="priv-card" id="s4">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">🍪</div>
+        <div>
+          <div class="priv-card-num">Section 04</div>
+          <div class="priv-card-title">Cookies & Tracking</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>LootLo uses minimal cookies and local browser storage to provide a better experience:</p>
+        <ul class="priv-list">
+          <li><strong>Essential cookies</strong> — required for core functionality such as remembering your navigation history within the app.</li>
+          <li><strong>Analytics cookies</strong> — anonymous, aggregate-level data to understand how users interact with the site.</li>
+          <li><strong>No advertising cookies</strong> — we do not use ad-tracking or cross-site behavioural advertising cookies.</li>
+        </ul>
+        <p>You can clear or block cookies via your browser settings at any time. Note that disabling certain cookies may affect in-app features like your browsing history.</p>
+      </div>
+    </div>
+
+    <!-- 05 -->
+    <div class="priv-card" id="s5">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">🔐</div>
+        <div>
+          <div class="priv-card-num">Section 05</div>
+          <div class="priv-card-title">Data Storage & Security</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>Your browsing history within LootLo is stored locally on your device and is not transmitted to our servers. We take reasonable precautions to protect any data we do collect, including:</p>
+        <ul class="priv-list">
+          <li>HTTPS encryption on all pages and data transfers.</li>
+          <li>No storage of sensitive personal or financial data.</li>
+          <li>Regular review of third-party tools and services we integrate with.</li>
+        </ul>
+        <p>While we take security seriously, no method of transmission over the internet is 100% secure. We cannot guarantee absolute security of any information.</p>
+      </div>
+    </div>
+
+    <!-- 06 -->
+    <div class="priv-card" id="s6">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">✋</div>
+        <div>
+          <div class="priv-card-num">Section 06</div>
+          <div class="priv-card-title">Your Rights</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>Depending on your location, you may have certain rights regarding your data:</p>
+        <ul class="priv-list">
+          <li><strong>Right to access</strong> — request a copy of any personal data we hold about you.</li>
+          <li><strong>Right to deletion</strong> — ask us to delete any data we hold about you.</li>
+          <li><strong>Right to opt out</strong> — opt out of analytics tracking at any time by contacting us or adjusting your browser settings.</li>
+          <li><strong>Right to correction</strong> — ask us to correct any inaccurate information.</li>
+        </ul>
+        <p>To exercise any of these rights, please contact us using the details at the bottom of this page. We aim to respond to all requests within 30 days.</p>
+      </div>
+    </div>
+
+    <!-- 07 -->
+    <div class="priv-card" id="s7">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">🧒</div>
+        <div>
+          <div class="priv-card-num">Section 07</div>
+          <div class="priv-card-title">Children's Privacy</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>LootLo is intended for users aged 13 and above. We do not knowingly collect personal information from children under the age of 13.</p>
+        <p>If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately and we will take steps to delete such information.</p>
+      </div>
+    </div>
+
+    <!-- 08 -->
+    <div class="priv-card" id="s8">
+      <div class="priv-card-header">
+        <div class="priv-icon-wrap">📝</div>
+        <div>
+          <div class="priv-card-num">Section 08</div>
+          <div class="priv-card-title">Changes to This Policy</div>
+        </div>
+      </div>
+      <div class="priv-card-body">
+        <p>We may update this Privacy Policy from time to time to reflect changes in our practices or for legal, operational, or regulatory reasons.</p>
+        <p>When we make changes, we will update the "Last updated" date at the top of this page. We encourage you to review this policy periodically. Continued use of LootLo after any changes constitutes your acceptance of the updated policy.</p>
+        <div class="highlight-box">✦ We will never make significant changes to how we use your data without prominently notifying you on the app.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CONTACT -->
+  <div class="contact-card">
+    <div class="contact-icon">✉️</div>
+    <h2>Questions about your <span>Privacy?</span></h2>
+    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your data, reach out to us directly.</p>
+    <a class="contact-email" href="mailto:privacy@stylevault.in">paycodehelp@gmail.com</a>
+  </div>
+
+ <!-- FOOTER -->
+  <div class="main-footer">
+    <strong>Loot<span>Lo</span></strong><br/>
+    © 2026 LootLo · <a href="privacy.html">Privacy Policy</a><br/>
+    Affiliate links — we may earn a small commission.
+  </div>
+
+
+</main>
+
+<!-- Bottom nav removed — navigation now via hamburger menu -->
+
+<script>
+  const menuOverlay = document.getElementById('menu-overlay');
+  document.getElementById('hamburger-btn').addEventListener('click', () => {
+    menuOverlay.classList.add('open');
+  });
+  document.getElementById('menu-close').addEventListener('click', () => {
+    menuOverlay.classList.remove('open');
+  });
+  menuOverlay.addEventListener('click', e => {
+    if (e.target === menuOverlay) menuOverlay.classList.remove('open');
+  });
+</script>
+
+</body>
+</html>

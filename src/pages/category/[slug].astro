@@ -1,0 +1,41 @@
+---
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import DealsFeed from '../../components/DealsFeed.astro';
+import { getCategories, getCards } from '../../lib/lootlo-queries';
+import '../../styles/style.css';
+
+const { slug } = Astro.params;
+const PAGE_SIZE = 8;
+
+const categories = await getCategories();
+const activeCategory = categories.find((c) => c.id === slug);
+
+// Unknown category slug -> 404 rather than silently rendering an empty feed.
+if (!activeCategory) {
+  return Astro.redirect('/404');
+}
+
+const { cards, hasMore } = await getCards({ cat: slug, limit: PAGE_SIZE, offset: 0 });
+---
+<Layout
+  title={`${activeCategory.label} Deals — LootLo`}
+  description={`Curated ${activeCategory.label} deals and pre-filtered store links, handpicked by LootLo.`}
+>
+  <div class="hero">
+    <div class="hero-eyebrow">{activeCategory.emoji || '✦'} {activeCategory.label}</div>
+    <h1>Best <em>{activeCategory.label}</em><br />Deals, Curated</h1>
+    <p class="hero-sub">
+      Pre-filtered links to the best stores for {activeCategory.label.toLowerCase()}. Every click lands you in the right section.
+    </p>
+  </div>
+
+  <DealsFeed
+    activeCat={slug}
+    categories={categories}
+    initialCards={cards}
+    initialHasMore={hasMore}
+    pageSize={PAGE_SIZE}
+  />
+</Layout>

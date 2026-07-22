@@ -1,0 +1,244 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import {
+  getSpotlight,
+  getHeatCategories,
+  getTrending,
+  getCategories,
+} from '../lib/lootlo-queries';
+
+const PAGE_SIZE = 10;
+
+const [spotlight, heatCategories, { items: trendingItems, hasMore }, categories] = await Promise.all([
+  getSpotlight(),
+  getHeatCategories(),
+  getTrending({ limit: PAGE_SIZE, offset: 0 }),
+  getCategories(),
+]);
+
+// heat_categories has no category-id column, so link a heat card to its
+// matching /category/<id> only if its name matches a real category label.
+const labelToId: Record<string, string> = {};
+categories.forEach((c) => { labelToId[c.label.toLowerCase()] = c.id; });
+
+function changeLabel(dir: string, val: string) {
+  if (dir === 'new') return 'New';
+  return `${dir === 'up' ? '↑' : '↓'} ${val || ''}`;
+}
+---
+<Layout title="Explore The Trend — LootLo" description="The most-clicked categories and stores on LootLo today." navBadge="Trending">
+  <style>
+    .trend-hero { padding: 28px 20px 16px; }
+    .trend-hero h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; margin-bottom: 8px; }
+    .trend-hero h1 em { font-style: normal; color: var(--gold); }
+    .trend-hero p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; }
+    .live-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(224, 92, 92, 0.1); border: 1px solid rgba(224, 92, 92, 0.3); color: var(--red); font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; margin-bottom: 14px; }
+    .live-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: pulse 1.4s ease infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: .4; transform: scale(.7) } }
+    .trend-section { padding: 0 20px; margin-bottom: 28px; }
+    .trend-section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 12px; }
+    .trend-list { display: flex; flex-direction: column; gap: 10px; }
+    .trend-item { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; cursor: pointer; text-decoration: none; transition: opacity .15s; color: inherit; }
+    .trend-item:active { opacity: .7 }
+    .trend-item.is-gold { border-color: var(--border-gold) }
+    .trend-rank { font-size: 1.1rem; font-weight: 800; color: var(--muted); width: 24px; text-align: center; flex-shrink: 0; line-height: 1; }
+    .trend-item.rank-1 .trend-rank { color: var(--gold) }
+    .trend-item.rank-2 .trend-rank { color: #c0c0c0 }
+    .trend-item.rank-3 .trend-rank { color: #cd7f32 }
+    .trend-emoji { font-size: 1.6rem; flex-shrink: 0 }
+    .trend-info { flex: 1; min-width: 0 }
+    .trend-name { font-size: .9rem; font-weight: 600; margin-bottom: 3px }
+    .trend-meta { font-size: .72rem; color: var(--muted) }
+    .trend-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0 }
+    .trend-change { font-size: .72rem; font-weight: 700; padding: 2px 7px; border-radius: 10px }
+    .trend-change.up { color: #5ce05c; background: rgba(92, 224, 92, .1) }
+    .trend-change.down { color: var(--red); background: rgba(224, 92, 92, .1) }
+    .trend-change.new { color: var(--blue); background: rgba(92, 184, 224, .1) }
+    .trend-arrow { color: var(--muted); font-size: .9rem }
+    .spotlight { margin: 0 20px 28px; background: var(--surface); border: 1px solid var(--border-gold); border-radius: var(--radius); overflow: hidden; }
+    .spotlight-header { background: var(--surface2); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; }
+    .spotlight-label { font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gold); }
+    .spotlight-body { padding: 18px; }
+    .spotlight-body h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+    .spotlight-body h2 em { font-style: normal; color: var(--gold); }
+    .spotlight-body p { font-size: .82rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+    .spotlight-stores { display: flex; flex-direction: column; gap: 8px; }
+    .heat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .heat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 14px; cursor: pointer; text-decoration: none; transition: opacity .15s; color: inherit; display: block; }
+    .heat-card:active { opacity: .7 }
+    .heat-emoji { font-size: 1.6rem; margin-bottom: 8px }
+    .heat-name { font-size: .85rem; font-weight: 700; margin-bottom: 4px }
+    .heat-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 6px; overflow: hidden }
+    .heat-bar { height: 100%; background: var(--gold); border-radius: 2px }
+    .heat-pct { font-size: .68rem; color: var(--muted) }
+    .trend-skeleton { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; display: flex; align-items: center; gap: 14px; }
+    .sk-rank { width: 24px; height: 20px; }
+    .sk-emoji2 { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+    .sk-info { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .sk-ln { height: 10px; border-radius: 4px; }
+    .sk-ln.w70 { width: 70%; }
+    .sk-ln.w45 { width: 45%; }
+
+    @media (min-width: 768px) {
+      .trend-hero { padding: 40px 0 24px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+      .trend-hero h1 { font-size: 2.6rem; }
+      .trend-hero p { max-width: 480px; font-size: 0.95rem; }
+      .spotlight { margin: 0 0 28px; }
+      .trend-section { padding: 0; }
+      .trend-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .heat-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (min-width: 1100px) {
+      .trend-list { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+
+  <div class="trend-hero">
+    <div class="live-pill"><span class="live-dot"></span> Live Trends</div>
+    <h1>What's <em>Hot</em><br />Right Now</h1>
+    <p>The most-clicked categories and stores on LootLo today.</p>
+  </div>
+
+  {spotlight && (
+    <div class="spotlight">
+      <div class="spotlight-header">
+        <span class="spotlight-label">🔥 Spotlight of the Day</span>
+        <span class="badge badge-hot">Trending</span>
+      </div>
+      <div class="spotlight-body">
+        <h2 set:html={spotlight.title} />
+        <p>{spotlight.description}</p>
+        <div class="spotlight-stores">
+          {spotlight.stores.map((s) => (
+            <a class={`store-btn ${s.topPick ? 'is-top' : ''}`} href={s.url} target="_blank" rel="noopener">
+              <div class="store-left">
+                <div class="store-icon">{s.icon}</div>
+                <div>
+                  <div class="store-name">{s.name}{s.topPick && <span class="top-star"> ★</span>}</div>
+                  <div class="store-sub">{s.sub}</div>
+                </div>
+              </div>
+              <div class="store-arrow">›</div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  )}
+
+  <div class="trend-section">
+    <div class="trend-section-title">Top trending right now</div>
+    <div class="trend-list" id="trend-list" data-offset={trendingItems.length} data-page-size={PAGE_SIZE} data-has-more={hasMore ? '1' : '0'}>
+      {trendingItems.map((t, i) => {
+        const rank = i + 1;
+        return (
+          <a class={`trend-item ${rank <= 3 ? `rank-${rank}` : ''}`} href={t.url || '#'} target="_blank" rel="noopener">
+            <div class="trend-rank">{rank}</div>
+            <div class="trend-emoji">{t.emoji}</div>
+            <div class="trend-info">
+              <div class="trend-name">{t.name}</div>
+              <div class="trend-meta">{t.meta || ''}</div>
+            </div>
+            <div class="trend-right">
+              <span class={`trend-change ${t.changeDir}`}>{changeLabel(t.changeDir, t.changeVal)}</span>
+              <span class="trend-arrow">›</span>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </div>
+
+  <div class="trend-section">
+    <div class="trend-section-title">Category heat today</div>
+    <div class="heat-grid" id="heat-grid">
+      {heatCategories.map((h) => {
+        const matchedId = labelToId[h.name.toLowerCase()];
+        const Tag = matchedId ? 'a' : 'div';
+        return (
+          <Tag class="heat-card" {...(matchedId ? { href: `/category/${matchedId}` } : {})}>
+            <div class="heat-emoji">{h.emoji}</div>
+            <div class="heat-name">{h.name}</div>
+            <div class="heat-bar-wrap"><div class="heat-bar" style={`width:${h.activity}%;background:${h.barColor}`}></div></div>
+            <div class="heat-pct">{h.activity}% activity</div>
+          </Tag>
+        );
+      })}
+    </div>
+  </div>
+
+  <div class="load-sentinel" id="load-sentinel"></div>
+  <div class="load-more-spinner" id="load-spinner" style="display:none">
+    <div class="spinner-dot"></div>
+    <div class="spinner-dot"></div>
+    <div class="spinner-dot"></div>
+    Loading more…
+  </div>
+
+  <script>
+    const list = document.getElementById('trend-list')!;
+    const pageSize = parseInt(list.dataset.pageSize || '4');
+    let offset = parseInt(list.dataset.offset || '0');
+    let hasMore = list.dataset.hasMore === '1';
+    let loading = false;
+
+    const spinner = document.getElementById('load-spinner') as HTMLElement;
+    const sentinel = document.getElementById('load-sentinel')!;
+
+    function changeLabel(dir: string, val: string) {
+      if (dir === 'new') return 'New';
+      return `${dir === 'up' ? '↑' : '↓'} ${val || ''}`;
+    }
+
+    function appendItems(items: any[]) {
+      let count = list.querySelectorAll('.trend-item').length;
+      items.forEach((t) => {
+        count++;
+        const el = document.createElement('a');
+        el.className = `trend-item ${count <= 3 ? `rank-${count}` : ''}`;
+        el.href = t.url || '#';
+        el.target = '_blank';
+        el.rel = 'noopener';
+        el.innerHTML = `
+          <div class="trend-rank">${count}</div>
+          <div class="trend-emoji">${t.emoji}</div>
+          <div class="trend-info">
+            <div class="trend-name">${t.name}</div>
+            <div class="trend-meta">${t.meta || ''}</div>
+          </div>
+          <div class="trend-right">
+            <span class="trend-change ${t.changeDir}">${changeLabel(t.changeDir, t.changeVal)}</span>
+            <span class="trend-arrow">›</span>
+          </div>`;
+        list.appendChild(el);
+      });
+    }
+
+    async function loadMore() {
+      if (loading || !hasMore) return;
+      loading = true;
+      spinner.style.display = 'flex';
+      try {
+        const res = await fetch(`/api/trending?offset=${offset}&limit=${pageSize}`);
+        if (!res.ok) throw new Error('Failed to load more trending items');
+        const data = await res.json();
+        appendItems(data.items);
+        offset += data.items.length;
+        hasMore = data.hasMore;
+      } catch (err) {
+        console.error('Load more trending error:', err);
+        hasMore = false;
+      } finally {
+        loading = false;
+        spinner.style.display = 'none';
+      }
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '200px' });
+    observer.observe(sentinel);
+  </script>
+</Layout>

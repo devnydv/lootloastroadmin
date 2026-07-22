@@ -1,0 +1,269 @@
+---
+import type { Card, Category } from '../lib/lootlo-queries';
+
+export interface Props {
+  activeCat: string; // 'all' or a category id, e.g. 'mens-wear'
+  categories: Category[];
+  initialCards: Card[];
+  initialHasMore: boolean;
+  pageSize?: number;
+}
+
+const { activeCat, categories, initialCards, initialHasMore, pageSize = 8 } = Astro.props;
+
+const catLabels: Record<string, string> = {};
+categories.forEach((c) => { catLabels[c.id] = c.label; });
+
+function groupByCat(cards: Card[]) {
+  const order: string[] = [];
+  const groups: Record<string, Card[]> = {};
+  cards.forEach((c) => {
+    if (!groups[c.cat]) { groups[c.cat] = []; order.push(c.cat); }
+    groups[c.cat].push(c);
+  });
+  return { order, groups };
+}
+const { order, groups } = groupByCat(initialCards);
+
+const totalStores = initialCards.reduce((n, c) => n + (c.stores || []).length, 0);
+const totalCats = new Set(initialCards.map((c) => c.cat)).size;
+---
+<div class="stats">
+  <div class="stat"><div class="stat-num" id="stat-cats">{totalCats || '–'}</div><div class="stat-label">Categories</div></div>
+  <div class="stat"><div class="stat-num" id="stat-stores">{totalStores || '–'}</div><div class="stat-label">Stores</div></div>
+  <div class="stat"><div class="stat-num">★ 1</div><div class="stat-label">Top Pick</div></div>
+</div>
+
+
+<div class="chips-wrap">
+  <div class="chips" id="chips">
+    <a class:list={['chip', { active: activeCat === 'all' }]} href="/">
+      <span class="chip-icon">✦</span> All
+    </a>
+    {categories.map((c) => (
+      <a class:list={['chip', { active: activeCat === c.id }]} href={`/category/${c.id}`}>
+        <span class="chip-icon">{c.emoji || '✦'}</span> {c.label}
+      </a>
+    ))}
+  </div>
+</div>
+
+
+
+<div
+  id="cards-root"
+  data-active-cat={activeCat}
+  data-offset={initialCards.length}
+  data-page-size={pageSize}
+  data-has-more={initialHasMore ? '1' : '0'}
+>
+  {order.length === 0 && (
+    <div class="empty-state">
+      <div class="empty-icon">🗂️</div>
+      <div class="empty-title">No deals here yet</div>
+      <div class="empty-desc">Check back soon — we're adding stores for this category.</div>
+    </div>
+  )}
+
+  {order.map((cat, idx) => (
+    <Fragment>
+      {idx > 0 && <div class="cat-divider"></div>}
+      <div data-section={cat}>
+        <div class="section-label" data-label-for={cat}>
+          <h2>{catLabels[cat] || cat}</h2>
+          <span id={`count-${cat}`}>{groups[cat].length} pick{groups[cat].length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="cards-list">
+          {groups[cat].map((card) => {
+            const topStore = card.stores.find((s) => s.topPick);
+            const badgeCls = card.badge === 'top' ? 'badge-top' : card.badge === 'hot' ? 'badge-hot' : 'badge-new';
+            return (
+              <article class="card" data-card-id={card.id}>
+                <div class="card-header">
+                  <div class="card-emoji-wrap">{card.emoji || '🛍️'}</div>
+                  <div class="card-header-info">
+                    <div class="card-title">{card.title}</div>
+                    <div class="badges-row"><span class={`badge ${badgeCls}`}>{card.badgeLabel}</span></div>
+                  </div>
+                </div>
+                <div class="card-desc">{card.description}</div>
+                {topStore && (
+                  <div class="top-pick-bar">★ Top Pick: <strong>{topStore.name}</strong> — Best for this category</div>
+                )}
+                <div class="stores">
+                  {card.stores.map((s) => {
+                    const costLevel = Math.min(3, Math.max(1, s.costLevel || 2));
+                    const key = `${card.id}_${s.name}`;
+                    return (
+                      <a class={`store-btn ${s.topPick ? 'is-top' : ''}`} href="#" data-url={s.url} data-store={s.name} data-key={key}>
+                        <div class="store-left">
+                          <div class="store-icon">{s.icon}</div>
+                          <div>
+                            <div class="store-name">
+                              {s.name}
+                              {s.topPick && <span class="top-star">★</span>}
+                            </div>
+                            <div class="store-sub">{s.sub}</div>
+                          </div>
+                        </div>
+                        <div class="store-arrow">
+                          <span class="cost-indicator" title={costLevel === 1 ? 'Budget' : costLevel === 2 ? 'Mid-range' : 'Premium'}>
+                            {'₹'.repeat(costLevel)}
+                          </span> ›
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </Fragment>
+  ))}
+</div>
+
+<div class="load-sentinel" id="load-sentinel"></div>
+<div class="load-more-spinner" id="load-spinner" style="display:none">
+  <div class="spinner-dot"></div>
+  <div class="spinner-dot"></div>
+  <div class="spinner-dot"></div>
+  Loading more…
+</div>
+
+<script>
+  // This script re-runs per page navigation (it's part of the component
+  // markup itself, not the Layout), so `root` always matches the current cat.
+  const root = document.getElementById('cards-root')!;
+  const activeCat = root.dataset.activeCat!;
+  const pageSize = parseInt(root.dataset.pageSize || '8');
+  let offset = parseInt(root.dataset.offset || '0');
+  let hasMore = root.dataset.hasMore === '1';
+  let loading = false;
+
+  const spinner = document.getElementById('load-spinner') as HTMLElement;
+  const sentinel = document.getElementById('load-sentinel')!;
+
+  function buildCardEl(card: any): HTMLElement {
+    const topStore = (card.stores || []).find((s: any) => s.topPick);
+    const badgeCls = card.badge === 'top' ? 'badge-top' : card.badge === 'hot' ? 'badge-hot' : 'badge-new';
+    const visited = (window as any).__lootlo?.getVisited?.() || {};
+
+    const storesHTML = (card.stores || []).map((s: any) => {
+      const key = `${card.id}_${s.name}`;
+      const wasVisited = visited[key];
+      const costLevel = Math.min(3, Math.max(1, parseInt(s.costLevel) || 2));
+      const rupeeHTML = `<span class="cost-indicator" title="Cost: ${costLevel === 1 ? 'Budget' : costLevel === 2 ? 'Mid-range' : 'Premium'}">${'₹'.repeat(costLevel)}<span class="cost-dim">${'₹'.repeat(3 - costLevel)}</span></span>`;
+      return `<a class="store-btn ${s.topPick ? 'is-top' : ''}" href="#" data-url="${s.url}" data-store="${s.name}" data-key="${key}">
+        <div class="store-left">
+          <div class="store-icon">${s.icon}</div>
+          <div>
+            <div class="store-name">${s.name}${s.topPick ? '<span class="top-star">★</span>' : ''}${wasVisited ? '<span class="visited-tag">Visited</span>' : ''}</div>
+            <div class="store-sub">${s.sub}</div>
+          </div>
+        </div>
+        <div class="store-arrow">${rupeeHTML} ›</div>
+      </a>`;
+    }).join('');
+
+    const topBanner = topStore
+      ? `<div class="top-pick-bar">★ Top Pick: <strong>${topStore.name}</strong> — Best for this category</div>`
+      : '';
+
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.dataset.cardId = card.id;
+    el.innerHTML = `
+      <div class="card-header">
+        <div class="card-emoji-wrap">${card.emoji || '🛍️'}</div>
+        <div class="card-header-info">
+          <div class="card-title">${card.title}</div>
+          <div class="badges-row"><span class="badge ${badgeCls}">${card.badgeLabel}</span></div>
+        </div>
+      </div>
+      <div class="card-desc">${card.description}</div>
+      ${topBanner}
+      <div class="stores">${storesHTML}</div>`;
+    return el;
+  }
+
+  function appendCards(cards: any[]) {
+    cards.forEach((card) => {
+      const cat = card.cat;
+      let section = root.querySelector(`[data-section="${cat}"]`) as HTMLElement | null;
+
+      if (!section) {
+        const existing = root.querySelectorAll('[data-section]');
+        if (existing.length > 0) {
+          const div = document.createElement('div');
+          div.className = 'cat-divider';
+          root.appendChild(div);
+        }
+        section = document.createElement('div');
+        section.dataset.section = cat;
+        const lbl = document.createElement('div');
+        lbl.className = 'section-label';
+        lbl.dataset.labelFor = cat;
+        lbl.innerHTML = `<h2>${cat}</h2><span id="count-${cat}">0 picks</span>`;
+        root.appendChild(lbl);
+        root.appendChild(section);
+      }
+
+      let list = section.querySelector('.cards-list') as HTMLElement | null;
+      if (!list) {
+        list = document.createElement('div');
+        list.className = 'cards-list';
+        section.appendChild(list);
+      }
+
+      list.appendChild(buildCardEl(card));
+
+      const countEl = root.querySelector(`#count-${cat}`);
+      if (countEl) {
+        const n = list.querySelectorAll('.card').length;
+        countEl.textContent = `${n} pick${n !== 1 ? 's' : ''}`;
+      }
+    });
+    bindStoreButtons();
+  }
+
+  function bindStoreButtons() {
+    root.querySelectorAll('.store-btn').forEach((btn) => {
+      const el = btn as HTMLElement;
+      if (el.dataset.bound) return;
+      el.dataset.bound = '1';
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        (window as any).__lootlo?.openSheet?.(el.dataset.store, el.dataset.url, el.dataset.key);
+      });
+    });
+  }
+  bindStoreButtons();
+
+  async function loadMore() {
+    if (loading || !hasMore) return;
+    loading = true;
+    spinner.style.display = 'flex';
+    try {
+      const url = `/api/cards?cat=${encodeURIComponent(activeCat)}&offset=${offset}&limit=${pageSize}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to load more');
+      const data = await res.json();
+      appendCards(data.cards);
+      offset += data.cards.length;
+      hasMore = data.hasMore;
+    } catch (err) {
+      console.error('Load more error:', err);
+      hasMore = false;
+    } finally {
+      loading = false;
+      spinner.style.display = 'none';
+    }
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) loadMore();
+  }, { rootMargin: '200px' });
+  observer.observe(sentinel);
+</script>

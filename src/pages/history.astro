@@ -1,0 +1,581 @@
+---
+import "../styles/style.css";
+// history.astro — SSR page.
+//
+// IMPORTANT: the visit history itself lives in the visitor's own browser
+// (localStorage: `sv_visited`), so there is nothing to SSR-fetch for the
+// history list — it's inherently per-device, client-rendered data, same
+// as the original page.
+//
+// What *does* move server-side: the store metadata (icon / category / url
+// per store, from the Firebase `cards` node) that the original page
+// fetched "best-effort" client-side to enrich history entries with fresh
+// URLs. That's now fetched once via SSR and handed to the client script
+// directly, so there's no extra async Firebase SDK import in the browser
+// and no re-render flicker once metadata arrives.
+//
+// Requires the same PUBLIC_FIREBASE_* env vars as the other pages.
+// NOTE (Cloudflare adapter): use a `.dev.vars` file for local dev, not a
+// plain `.env` — see the note in toppicks.astro / trending.astro.
+
+export const prerender = false;
+
+const firebaseConfig = {
+  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
+  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL: "https://payme-bce76.firebaseio.com",
+  projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
+};
+
+const dbUrl = firebaseConfig.databaseURL;
+
+type StoreMetaEntry = {
+  icon?: string;
+  cat?: string;
+  url?: string;
+};
+
+// Map of "<cardId>_<storeName>" -> { icon, cat, url }, built server-side
+// from the `cards` node, exactly matching the shape the client script
+// used to build itself from a Firebase fetch.
+let storeMeta: Record<string, StoreMetaEntry> = {};
+let fetchError = false;
+
+try {
+  const res = await fetch(`${dbUrl}/cards.json`);
+  if (res.ok) {
+    const data = await res.json();
+    if (data) {
+      Object.values(data).forEach((card: any) => {
+        (card.stores || []).forEach((s: any) => {
+          const key = `${card.id}_${s.name}`;
+          storeMeta[key] = { icon: s.icon, cat: card.cat, url: s.url };
+        });
+      });
+    }
+  } else {
+    fetchError = true;
+  }
+} catch (e) {
+  console.error("SSR Firebase fetch error (history/cards):", e);
+  fetchError = true;
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History — LootLo</title>
+  <meta name="description" content="Every store you've visited through LootLo, saved locally on your device.">
+  <meta name="keywords"
+    content="LootLo, browsing history, visited stores, store categories, revisit stores, clear history, local storage">
+  <meta property="og:title" content="History — LootLo">
+  <meta property="og:description" content="Every store you've visited through LootLo, saved locally on your device.">
+  <meta property="og:image" content="https://lootlo.site/lootlo.png">
+  <!-- <link rel="stylesheet" href="/style.css" /> -->
+  <link rel="shortcut icon" href="/icon.webp" type="image/x-icon">
+  <style is:global>
+    nav a {
+      text-decoration: none;
+      color: inherit;
+    }
+    .page-hero {
+      padding: 28px 20px 20px;
+    }
+
+    .page-hero h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    .page-hero h1 em {
+      font-style: normal;
+      color: var(--gold);
+    }
+
+    .page-hero p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(92, 184, 224, 0.1);
+      border: 1px solid rgba(92, 184, 224, 0.3);
+      color: var(--blue);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+
+    .summary {
+      display: flex;
+      margin: 0 20px 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .summary-stat {
+      flex: 1;
+      padding: 14px 0;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .summary-stat:last-child {
+      border-right: none;
+    }
+
+    .summary-num {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--blue);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .summary-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .history-section {
+      padding: 0 20px;
+      margin-bottom: 28px;
+    }
+
+    .history-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      animation: slideUp 0.3s ease both;
+    }
+
+    .history-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .history-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-store {
+      font-size: 0.87rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-cat {
+      font-size: 0.72rem;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .history-time {
+      font-size: 0.65rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .revisit-btn {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--gold);
+      background: var(--gold-glow);
+      border: 1px solid var(--border-gold);
+      padding: 3px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .revisit-btn:active {
+      opacity: 0.7;
+    }
+
+    .clear-wrap {
+      padding: 0 20px 20px;
+      text-align: center;
+    }
+
+    .clear-btn {
+      background: transparent;
+      border: 1px solid rgba(224, 92, 92, 0.3);
+      color: var(--red);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .clear-btn:active {
+      opacity: 0.7;
+    }
+
+    /* ── DESKTOP ── */
+    @media (min-width: 768px) {
+      .page-hero {
+        padding: 40px 0 24px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .page-hero h1 { font-size: 2.6rem; }
+      .page-hero p { max-width: 480px; font-size: 0.95rem; }
+
+      .summary {
+        margin: 0 auto 24px;
+        max-width: 480px;
+      }
+
+      .history-section { padding: 0; }
+
+      .history-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .clear-wrap { padding: 0 0 20px; }
+      .clear-btn { max-width: 320px; margin: 0 auto; }
+    }
+
+    @media (min-width: 1100px) {
+      .history-list { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-left">
+      <div class="hamburger-btn" id="hamburger-btn">☰</div>
+      <div class="logo-text">Loot<span>Lo</span></div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-badge"><a href="/privacy">Privacy</a></div>
+    </div>
+  </nav>
+
+  <!-- HAMBURGER MENU OVERLAY -->
+  <div id="menu-overlay">
+    <div class="menu-panel">
+      <div class="menu-header">
+        <div class="logo-text">Loot<span>Lo</span></div>
+        <div class="menu-close" id="menu-close">✕</div>
+      </div>
+      <a class="menu-item" href="/">
+        <span class="menu-item-icon">🏠</span> Home
+      </a>
+      <a class="menu-item" href="/trending">
+        <span class="menu-item-icon">🔥</span> Trending
+      </a>
+      <a class="menu-item" href="/toppicks">
+        <span class="menu-item-icon">⭐</span> Top Picks
+      </a>
+      <a class="menu-item active" href="/history">
+        <span class="menu-item-icon">🕐</span> History
+      </a>
+      <a class="menu-item" href="/privacy">
+        <span class="menu-item-icon">🔒</span> Privacy Policy
+      </a>
+    </div>
+  </div>
+
+  <main class="main">
+
+    <div class="page-hero">
+      <div class="eyebrow">🕐 Your Activity</div>
+      <h1>Browsing<br /><em>History</em></h1>
+      <p>Every store you've visited through LootLo, saved locally on your device.</p>
+    </div>
+
+    <div class="summary" id="summary-row" style="display:none">
+      <div class="summary-stat">
+        <div class="summary-num" id="stat-total">0</div>
+        <div class="summary-label">Visited</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-num" id="stat-stores">0</div>
+        <div class="summary-label">Stores</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-num" id="stat-cats">0</div>
+        <div class="summary-label">Categories</div>
+      </div>
+    </div>
+
+    <div id="history-root"></div>
+
+    <div class="clear-wrap" id="clear-wrap" style="display:none">
+      <button class="clear-btn" id="clear-btn">🗑 Clear All History</button>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="main-footer">
+      <strong>Loot<span>Lo</span></strong><br />
+      © 2026 LootLo · <a href="/privacy">Privacy Policy</a><br />
+      Affiliate links — we may earn a small commission.
+    </div>
+
+
+  </main>
+
+  <div id="overlay">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body">
+        <div class="sheet-icon">🛍️</div>
+        <div class="sheet-title">Revisiting Store</div>
+        <div class="sheet-store" id="sheet-store-name">–</div>
+        <p class="sheet-note">We'll take you back to the pre-filtered section you visited before.</p>
+        <div class="progress-wrap">
+          <div class="progress-bar" id="sheet-progress"></div>
+        </div>
+        <p class="sheet-disclaimer">⚡ Affiliate link — LootLo may earn a commission at no extra cost to you.</p>
+        <button class="btn-go" id="btn-go">Continue to Store →</button>
+        <button class="btn-back" id="btn-back">Go back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Store metadata fetched server-side (Firebase `cards` node), handed
+       off to the client script below. Only the visit list itself
+       (`sv_visited` in localStorage) is per-device and stays client-only. -->
+  <script type="application/json" id="store-meta" set:html={JSON.stringify(storeMeta)} />
+
+  <script>
+    // History page uses localStorage for the actual visit list — that data
+    // is per-device and can't be SSR'd. Store metadata (icons/urls/cats)
+    // arrives pre-fetched from the server via the #store-meta script tag
+    // above, with a localStorage cache kept as an offline fallback.
+
+    const STORE_META_CACHE_KEY = 'sv_store_meta';
+
+    function getVisited() {
+      try { return JSON.parse(localStorage.getItem('sv_visited') || '{}'); } catch { return {}; }
+    }
+
+    function getSsrStoreMeta() {
+      try {
+        const el = document.getElementById('store-meta');
+        return el ? JSON.parse(el.textContent) : {};
+      } catch { return {}; }
+    }
+
+    function getStoreMeta() {
+      // Prefer freshly SSR-fetched metadata; fall back to the last cached
+      // copy (e.g. if the server fetch failed) for offline resilience.
+      const ssrMeta = getSsrStoreMeta();
+      if (ssrMeta && Object.keys(ssrMeta).length) {
+        // Keep the cache warm for next time.
+        try { localStorage.setItem(STORE_META_CACHE_KEY, JSON.stringify(ssrMeta)); } catch {}
+        return ssrMeta;
+      }
+      try { return JSON.parse(localStorage.getItem(STORE_META_CACHE_KEY) || '{}'); } catch { return {}; }
+    }
+
+    function buildHistory() {
+      const visited = getVisited();
+      const storeMeta = getStoreMeta();
+      const keys = Object.keys(visited).filter(k => visited[k]);
+      return keys.map(key => {
+        const meta = storeMeta[key] || {};
+        const parts = key.split('_');
+        const storeName = parts.slice(1).join('_');
+        return {
+          key, storeName,
+          icon: meta.icon || '🛍️',
+          cat: meta.cat || 'Fashion',
+          url: meta.url || '#'
+        };
+      });
+    }
+
+    // ── Hamburger menu ──
+    const menuOverlay = document.getElementById('menu-overlay');
+    document.getElementById('hamburger-btn').addEventListener('click', () => {
+      menuOverlay.classList.add('open');
+    });
+    document.getElementById('menu-close').addEventListener('click', () => {
+      menuOverlay.classList.remove('open');
+    });
+    menuOverlay.addEventListener('click', e => {
+      if (e.target === menuOverlay) menuOverlay.classList.remove('open');
+    });
+
+    let pendingUrl = null;
+
+    function openSheet(name, url) {
+      pendingUrl = url;
+      document.getElementById('sheet-store-name').textContent = name;
+      document.getElementById('overlay').classList.add('open');
+      const bar = document.getElementById('sheet-progress');
+      bar.style.width = '0%';
+      requestAnimationFrame(() => { bar.style.width = '100%'; });
+    }
+    function closeSheet() {
+      document.getElementById('overlay').classList.remove('open');
+      pendingUrl = null;s
+      const bar = document.getElementById('sheet-progress');
+      bar.style.transition = 'none'; bar.style.width = '0%';
+      setTimeout(() => { bar.style.transition = 'width 3s linear'; }, 50);
+    }
+
+    document.getElementById('btn-go').addEventListener('click', () => {
+      if (pendingUrl) window.open(pendingUrl, '_blank', 'noopener');
+      closeSheet();
+    });
+    document.getElementById('btn-back').addEventListener('click', closeSheet);
+    document.getElementById('overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('overlay')) closeSheet();
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      if (confirm('Clear all browsing history?')) {
+        localStorage.removeItem('sv_visited');
+        render();
+      }
+    });
+
+    function render() {
+      const entries = buildHistory();
+      const root = document.getElementById('history-root');
+      root.innerHTML = '';
+
+      if (!entries.length) {
+        document.getElementById('summary-row').style.display = 'none';
+        document.getElementById('clear-wrap').style.display = 'none';
+        root.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🛍️</div>
+        <div class="empty-title">No history yet</div>
+        <div class="empty-desc">Stores you visit through StyleVault will appear here so you can quickly revisit them.</div>
+        <a class="empty-cta" href="/stylevault" style="display:inline-block;background:var(--gold);color:#0a0a0c;font-weight:700;font-size:.85rem;padding:11px 22px;border-radius:var(--radius-sm);text-decoration:none;margin-top:16px;">Start Browsing →</a>
+      </div>`;
+        return;
+      }
+
+      const uniqueStores = new Set(entries.map(e => e.storeName)).size;
+      const uniqueCats = new Set(entries.map(e => e.cat)).size;
+      document.getElementById('stat-total').textContent = entries.length;
+      document.getElementById('stat-stores').textContent = uniqueStores;
+      document.getElementById('stat-cats').textContent = uniqueCats;
+      document.getElementById('summary-row').style.display = 'flex';
+      document.getElementById('clear-wrap').style.display = 'block';
+
+      const groups = {};
+      entries.forEach(e => {
+        if (!groups[e.cat]) groups[e.cat] = [];
+        groups[e.cat].push(e);
+      });
+
+      Object.entries(groups).forEach(([cat, items]) => {
+        const section = document.createElement('div');
+        section.className = 'history-section';
+        section.innerHTML = `<div class="history-section-title">${cat}</div><div class="history-list"></div>`;
+        root.appendChild(section);
+
+        const list = section.querySelector('.history-list');
+        items.forEach((entry, i) => {
+          const el = document.createElement('div');
+          el.className = 'history-item';
+          el.style.animationDelay = `${i * 0.04}s`;
+          const hasUrl = entry.url && entry.url !== '#';
+          const revisitHTML = hasUrl
+            ? `<a class="revisit-btn" href="#" data-url="${entry.url}" data-name="${entry.storeName}">Revisit →</a>`
+            : `<span class="revisit-btn" style="opacity:.4;cursor:default;">Unavailable</span>`;
+          el.innerHTML = `
+        <div class="history-icon">${entry.icon}</div>
+        <div class="history-info">
+          <div class="history-store">${entry.storeName}</div>
+          <div class="history-cat">${entry.cat}</div>
+        </div>
+        <div class="history-right">
+          <span class="history-time">Visited</span>
+          ${revisitHTML}
+        </div>`;
+          list.appendChild(el);
+        });
+      });
+
+      root.querySelectorAll('.revisit-btn[data-url]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          openSheet(btn.dataset.name, btn.dataset.url);
+        });
+      });
+    }
+
+    render();
+  </script>
+</body>
+
+</html>

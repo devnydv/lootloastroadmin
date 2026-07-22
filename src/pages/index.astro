@@ -1,0 +1,28 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import DealsFeed from '../components/DealsFeed.astro';
+import { getCategories, getCards } from '../lib/lootlo-queries';
+import '../styles/style.css';
+
+const PAGE_SIZE = 8;
+
+const categories = await getCategories();
+const { cards, hasMore } = await getCards({ cat: 'all', limit: PAGE_SIZE, offset: 0 });
+---
+<Layout>
+  <div class="hero">
+    <div class="hero-eyebrow">✦ Curated Picks</div>
+    <h1>Shop <em>Smarter</em>,<br />Not Harder</h1>
+    <p class="hero-sub">Pre-filtered links to the best fashion stores. Every click lands you in the right section.</p>
+  </div>
+
+  <DealsFeed
+  categories={categories}
+    activeCat="all"
+    initialCards={cards}
+    initialHasMore={hasMore}
+    pageSize={PAGE_SIZE}
+  />
+</Layout>

@@ -1,0 +1,984 @@
+---
+import { isAdminAuthed } from '../../lib/admin-auth';
+import '../../styles/admin.css';
+export const prerender = false;
+
+const authed = isAdminAuthed(Astro.cookies);
+const loginFailed = Astro.url.searchParams.get('error') === '1';
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LootLo Admin</title>
+  
+</head>
+<body>
+
+{!authed && (
+  <div id="login-screen">
+    <div class="login-box">
+      <div class="login-logo">Loot<span>Lo</span></div>
+      <div class="login-sub">Admin Panel</div>
+      <form method="POST" action="/api/admin/login">
+        <input type="password" name="password" placeholder="Enter admin password" autofocus />
+        <button class="btn-primary" type="submit">Login →</button>
+      </form>
+      {loginFailed && <div class="login-err">Incorrect password. Try again.</div>}
+    </div>
+  </div>
+)}
+
+{authed && (
+  <div id="app">
+    <nav class="admin-nav">
+      <div class="admin-logo">Loot<span>Lo</span> <small>Admin</small></div>
+      <form method="POST" action="/api/admin/logout">
+        <button class="btn-logout" type="submit">Logout</button>
+      </form>
+    </nav>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
+      <div class="tab" data-tab="categories">🏷️ Categories</div>
+      <div class="tab" data-tab="cards">🃏 Cards</div>
+      <div class="tab" data-tab="trending">🔥 Trending</div>
+      <div class="tab" data-tab="toppicks">⭐ Top Picks</div>
+      <div class="tab" data-tab="spotlight">💡 Spotlight</div>
+      <div class="tab" data-tab="heat">🌡️ Heat Grid</div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="tab-content active" id="tab-dashboard">
+      <div class="stats-grid" id="dash-stats">
+        <div class="stat-card"><div class="stat-card-num" id="ds-cats">–</div><div class="stat-card-lbl">Categories</div></div>
+        <div class="stat-card"><div class="stat-card-num" id="ds-cards">–</div><div class="stat-card-lbl">Cards</div></div>
+        <div class="stat-card"><div class="stat-card-num" id="ds-picks">–</div><div class="stat-card-lbl">Top Picks</div></div>
+        <div class="stat-card"><div class="stat-card-num" id="ds-trends">–</div><div class="stat-card-lbl">Trending Items</div></div>
+        <div class="stat-card"><div class="stat-card-num" id="ds-heat">–</div><div class="stat-card-lbl">Heat Categories</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Quick Tips</div>
+        <ul style="font-size:.82rem;color:var(--dim);line-height:2;padding-left:18px">
+          <li>Cards are paginated on the frontend — <strong style="color:var(--text)">Sort Order</strong> controls order within a category.</li>
+          <li>Top Picks, Trending, Spotlight and Heat Grid are on the roadmap for this admin panel's next pass.</li>
+          <li>Changes are live immediately — no redeploy needed.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="tab-content" id="tab-categories">
+      <div class="panel">
+        <div class="panel-title">Categories <span id="cats-count"></span></div>
+        <p style="font-size:.78rem;color:var(--dim);margin-bottom:14px;line-height:1.6">
+          Categories drive the filter chips on the home page and the category dropdown when creating cards.
+          Set <strong style="color:var(--text)">Sort Order</strong> to control chip order (lower = first).
+        </p>
+        <div class="items-list" id="cats-list"></div>
+        <button class="btn-save" id="new-cat-btn">+ New Category</button>
+      </div>
+
+      <div class="panel" id="cat-form-panel" style="display:none">
+        <div class="panel-title" id="cat-form-title">New Category</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Category ID (slug)</label>
+            <input type="text" id="catf-id" placeholder="e.g. ethnic, luxury, plus-size" />
+            <span class="form-hint">Lowercase, no spaces. Used as the filter key in cards.</span>
+          </div>
+          <div class="field">
+            <label>Label (display name)</label>
+            <input type="text" id="catf-label" placeholder="e.g. Ethnic Wear" />
+          </div>
+          <div class="field">
+            <label>Emoji</label>
+            <input type="text" id="catf-emoji" placeholder="👘" />
+          </div>
+          <div class="field">
+            <label>Sort Order <span class="form-hint">(lower = first chip)</span></label>
+            <input type="number" id="catf-order" placeholder="10" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" id="catf-save-btn">Save Category</button>
+          <button class="btn-cancel" id="catf-cancel-btn">Cancel</button>
+          <button class="btn-danger btn-sm" id="catf-delete-btn" style="display:none">Delete Category</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARDS -->
+    <div class="tab-content" id="tab-cards">
+      <div class="panel">
+        <div class="panel-title">All Cards <span id="cards-count"></span></div>
+        <div class="items-list" id="cards-list"></div>
+        <button class="btn-save" id="new-card-btn">+ New Card</button>
+      </div>
+
+      <div class="panel" id="card-form-panel" style="display:none">
+        <div class="panel-title" id="card-form-title">New Card</div>
+
+        <div class="form-grid">
+          <div class="field"><label>Card ID (slug)</label><input type="text" id="cf-id" placeholder="mens-shirts" /></div>
+          <div class="field"><label>Category</label>
+            <select id="cf-cat">
+              <option value="">Loading categories…</option>
+            </select>
+          </div>
+          <div class="field"><label>Emoji</label><input type="text" id="cf-emoji" placeholder="👔" /></div>
+          <div class="field"><label>Sort Order <span class="form-hint">(lower = first)</span></label><input type="number" id="cf-order" placeholder="10" class="order-input"/></div>
+        </div>
+
+        <div class="form-grid full" style="margin-top:12px">
+          <div class="field"><label>Title</label><input type="text" id="cf-title" placeholder="Best Formal Shirts for Men" /></div>
+          <div class="field"><label>Description</label><textarea id="cf-desc" placeholder="Short description shown on the card…"></textarea></div>
+        </div>
+
+        <div class="field" style="margin-top:12px">
+          <label>Badge</label>
+          <div class="badge-select" id="cf-badge-select">
+            <div class="badge-opt top sel" data-val="top" data-label="Editor's Pick">★ Editor's Pick</div>
+            <div class="badge-opt hot" data-val="hot" data-label="Trending">🔥 Trending</div>
+            <div class="badge-opt new" data-val="new" data-label="New Arrivals">✦ New Arrivals</div>
+          </div>
+          <input type="hidden" id="cf-badge" value="top" />
+          <input type="hidden" id="cf-badgelabel" value="Editor's Pick" />
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="panel-title" style="margin-bottom:12px">Stores</div>
+        <div class="stores-builder" id="cf-stores"></div>
+        <button class="add-store-btn" id="add-store-btn">+ Add Store</button>
+
+        <div class="form-actions">
+          <button class="btn-save" id="cf-save-btn">Save Card</button>
+          <button class="btn-cancel" id="cf-cancel-btn">Cancel</button>
+          <button class="btn-danger btn-sm" id="cf-delete-btn" style="display:none">Delete Card</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRENDING -->
+    <div class="tab-content" id="tab-trending">
+      <div class="panel">
+        <div class="panel-title">Trending Items <span id="trends-count"></span></div>
+        <div class="items-list" id="trends-list"></div>
+        <button class="btn-save" id="new-trend-btn">+ New Trending Item</button>
+      </div>
+
+      <div class="panel" id="trend-form-panel" style="display:none">
+        <div class="panel-title" id="trend-form-title">New Trending Item</div>
+        <div class="form-grid">
+          <div class="field"><label>Name</label><input type="text" id="tf-name" placeholder="Men's Slim Jeans" /></div>
+          <div class="field"><label>Emoji</label><input type="text" id="tf-emoji" placeholder="👖" /></div>
+          <div class="field"><label>URL</label><input type="url" id="tf-url" placeholder="https://..." /></div>
+          <div class="field"><label>Meta (stores shown)</label><input type="text" id="tf-meta" placeholder="Levi's · Myntra" /></div>
+          <div class="field"><label>Rank (order)</label><input type="number" id="tf-rank" placeholder="1" /></div>
+          <div class="field"><label>Change Direction</label>
+            <select id="tf-dir">
+              <option value="up">↑ Up</option>
+              <option value="down">↓ Down</option>
+              <option value="new">New</option>
+            </select>
+          </div>
+          <div class="field"><label>Change Value (e.g. 34%)</label><input type="text" id="tf-val" placeholder="34%" /></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" id="tf-save-btn">Save</button>
+          <button class="btn-cancel" id="tf-cancel-btn">Cancel</button>
+          <button class="btn-danger btn-sm" id="tf-delete-btn" style="display:none">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP PICKS -->
+    <div class="tab-content" id="tab-toppicks">
+      <div class="panel">
+        <div class="panel-title">Top Picks <span id="picks-count"></span></div>
+        <div class="items-list" id="picks-list"></div>
+        <button class="btn-save" id="new-pick-btn">+ New Top Pick</button>
+      </div>
+
+      <div class="panel" id="pick-form-panel" style="display:none">
+        <div class="panel-title" id="pick-form-title">New Top Pick</div>
+        <div class="form-grid">
+          <div class="field"><label>Category Label</label><input type="text" id="pf-cat" placeholder="Men's Wear" /></div>
+          <div class="field"><label>Emoji</label><input type="text" id="pf-emoji" placeholder="👔" /></div>
+          <div class="field"><label>Sort Order</label><input type="number" id="pf-order" placeholder="10" /></div>
+        </div>
+        <div class="form-grid full" style="margin-top:12px">
+          <div class="field"><label>Title</label><input type="text" id="pf-title" placeholder="Best Formal Shirts for Men" /></div>
+          <div class="field"><label>Description</label><textarea id="pf-desc"></textarea></div>
+        </div>
+        <div class="section-divider"></div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:12px">Store</div>
+        <div class="form-grid">
+          <div class="field"><label>Store Name</label><input type="text" id="pf-sname" /></div>
+          <div class="field"><label>Store Icon (emoji)</label><input type="text" id="pf-sicon" placeholder="🛒" /></div>
+          <div class="field"><label>Store Sub-label</label><input type="text" id="pf-ssub" placeholder="Huge collection, fast delivery" /></div>
+          <div class="field"><label>Store URL</label><input type="url" id="pf-surl" placeholder="https://..." /></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" id="pf-save-btn">Save</button>
+          <button class="btn-cancel" id="pf-cancel-btn">Cancel</button>
+          <button class="btn-danger btn-sm" id="pf-delete-btn" style="display:none">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPOTLIGHT -->
+    <div class="tab-content" id="tab-spotlight">
+      <div class="panel">
+        <div class="panel-title">Spotlight of the Day</div>
+        <div class="form-grid full">
+          <div class="field"><label>Title (HTML — use &lt;em&gt; for gold text)</label><input type="text" id="sl-title" placeholder="Men's &lt;em&gt;Slim Jeans&lt;/em&gt; are everywhere" /></div>
+          <div class="field"><label>Description</label><textarea id="sl-desc"></textarea></div>
+        </div>
+        <div class="section-divider"></div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--gold);margin-bottom:12px">Spotlight Stores</div>
+        <div class="stores-builder" id="sl-stores"></div>
+        <button class="add-store-btn" id="sl-add-store-btn">+ Add Store</button>
+        <div class="form-actions">
+          <button class="btn-save" id="sl-save-btn">Save Spotlight</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEAT GRID -->
+    <div class="tab-content" id="tab-heat">
+      <div class="panel">
+        <div class="panel-title">Heat Categories <span id="heat-count"></span></div>
+        <div class="items-list" id="heat-list"></div>
+        <button class="btn-save" id="new-heat-btn">+ New Heat Category</button>
+      </div>
+
+      <div class="panel" id="heat-form-panel" style="display:none">
+        <div class="panel-title" id="heat-form-title">New Heat Category</div>
+        <div class="form-grid">
+          <div class="field"><label>Name</label><input type="text" id="hf-name" placeholder="Men's Wear" /></div>
+          <div class="field"><label>Emoji</label><input type="text" id="hf-emoji" placeholder="👔" /></div>
+          <div class="field"><label>Activity %</label><input type="number" id="hf-activity" placeholder="88" min="0" max="100" /></div>
+          <div class="field"><label>Bar Color (CSS)</label><input type="text" id="hf-color" placeholder="var(--gold)" /></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" id="hf-save-btn">Save</button>
+          <button class="btn-cancel" id="hf-cancel-btn">Cancel</button>
+          <button class="btn-danger btn-sm" id="hf-delete-btn" style="display:none">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<div id="toast"></div>
+
+{authed && (
+  <script>
+    // ── Toast ─────────────────────────────────────────────
+    let toastTimer: ReturnType<typeof setTimeout>;
+    function toast(msg: string, isErr = false) {
+      const el = document.getElementById('toast')!;
+      el.textContent = msg;
+      el.className = isErr ? 'show err' : 'show';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = ''; }, 2800);
+    }
+
+    // ── Tiny fetch helper — every /api/admin/* call goes through here ──
+    async function api(path: string, options: RequestInit = {}) {
+      const res = await fetch(path, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Request failed (${res.status})`);
+      }
+      return res.status === 204 ? null : res.json();
+    }
+
+    // ── Tabs ──────────────────────────────────────────────
+    const TAB_LOADERS: Record<string, () => void> = {
+      dashboard:  loadDashboard,
+      categories: loadCategories,
+      cards:      loadCards,
+      trending:   loadTrending,
+      toppicks:   loadTopPicks,
+      spotlight:  loadSpotlight,
+      heat:       loadHeat,
+    };
+
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        const id = (t as HTMLElement).dataset.tab!;
+        document.getElementById(`tab-${id}`)!.classList.add('active');
+        (TAB_LOADERS[id] || (() => {}))();
+      });
+    });
+
+    // ── Dashboard ─────────────────────────────────────────
+    async function loadDashboard() {
+      try {
+        const stats = await api('/api/admin/dashboard');
+        document.getElementById('ds-cats')!.textContent   = stats.categories;
+        document.getElementById('ds-cards')!.textContent  = stats.cards;
+        document.getElementById('ds-picks')!.textContent  = stats.topPicks;
+        document.getElementById('ds-trends')!.textContent = stats.trending;
+        document.getElementById('ds-heat')!.textContent   = stats.heat;
+      } catch (e: any) { toast('Error loading dashboard: ' + e.message, true); }
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  CATEGORIES
+    // ─────────────────────────────────────────────────────
+    let editingCatId: string | null = null;
+    let cachedCategories: any[] = []; // used to populate the card form's select
+
+    async function loadCategories() {
+      const list = document.getElementById('cats-list')!;
+      try {
+        cachedCategories = await api('/api/admin/categories');
+      } catch (e: any) { toast('Error loading categories: ' + e.message, true); return; }
+
+      list.innerHTML = '';
+      if (!cachedCategories.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:.78rem">No categories yet.</div>';
+        document.getElementById('cats-count')!.textContent = '';
+        return;
+      }
+      document.getElementById('cats-count')!.textContent = `(${cachedCategories.length})`;
+
+      cachedCategories.forEach(cat => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <div class="item-emoji">${cat.emoji || '🏷️'}</div>
+          <div class="item-info">
+            <div class="item-title">${cat.label}</div>
+            <div class="item-meta">id: ${cat.id} · order ${cat.sortOrder ?? '–'}</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn-edit">Edit</button>
+            <button class="btn-del">✕</button>
+          </div>`;
+        row.querySelector('.btn-edit')!.addEventListener('click', () => openCatForm(cat));
+        row.querySelector('.btn-del')!.addEventListener('click', async () => {
+          if (confirm(`Delete category "${cat.label}"?\nCards using id "${cat.id}" will still exist but won't appear in the filter chip.`)) {
+            try {
+              await api(`/api/admin/categories/${cat.id}`, { method: 'DELETE' });
+              toast('Category deleted');
+              loadCategories(); loadDashboard();
+            } catch (e: any) { toast('Error: ' + e.message, true); }
+          }
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openCatForm(cat: any = null) {
+      editingCatId = cat ? cat.id : null;
+      document.getElementById('cat-form-panel')!.style.display = 'block';
+      document.getElementById('cat-form-title')!.textContent = cat ? 'Edit Category' : 'New Category';
+      (document.getElementById('catf-delete-btn') as HTMLElement).style.display = cat ? 'inline-block' : 'none';
+      (document.getElementById('catf-id') as HTMLInputElement).value    = cat?.id    || '';
+      (document.getElementById('catf-label') as HTMLInputElement).value = cat?.label || '';
+      (document.getElementById('catf-emoji') as HTMLInputElement).value = cat?.emoji || '';
+      (document.getElementById('catf-order') as HTMLInputElement).value = cat?.sortOrder ?? '';
+      (document.getElementById('catf-id') as HTMLInputElement).disabled = !!cat;
+      document.getElementById('cat-form-panel')!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.getElementById('new-cat-btn')!.addEventListener('click', () => openCatForm());
+    document.getElementById('catf-cancel-btn')!.addEventListener('click', () => {
+      (document.getElementById('cat-form-panel') as HTMLElement).style.display = 'none';
+    });
+    document.getElementById('catf-delete-btn')!.addEventListener('click', async () => {
+      if (editingCatId && confirm('Delete this category?')) {
+        try {
+          await api(`/api/admin/categories/${editingCatId}`, { method: 'DELETE' });
+          toast('Category deleted');
+          (document.getElementById('cat-form-panel') as HTMLElement).style.display = 'none';
+          loadCategories(); loadDashboard();
+        } catch (e: any) { toast('Error: ' + e.message, true); }
+      }
+    });
+
+    document.getElementById('catf-save-btn')!.addEventListener('click', async () => {
+      const id    = (document.getElementById('catf-id') as HTMLInputElement).value.trim().toLowerCase().replace(/\s+/g, '-');
+      const label = (document.getElementById('catf-label') as HTMLInputElement).value.trim();
+      if (!id || !label) { toast('ID and Label are required', true); return; }
+
+      const payload = {
+        id, label,
+        emoji: (document.getElementById('catf-emoji') as HTMLInputElement).value.trim(),
+        sortOrder: parseInt((document.getElementById('catf-order') as HTMLInputElement).value) || 0,
+      };
+
+      const btn = document.getElementById('catf-save-btn') as HTMLButtonElement;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving…';
+      try {
+        await api('/api/admin/categories', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Category saved ✓');
+        (document.getElementById('cat-form-panel') as HTMLElement).style.display = 'none';
+        loadCategories(); loadDashboard();
+      } catch (e: any) { toast('Error: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save Category'; }
+    });
+
+    async function populateCatSelect(currentVal: string) {
+      const sel = document.getElementById('cf-cat') as HTMLSelectElement;
+      if (!cachedCategories.length) await loadCategories();
+      sel.innerHTML = '';
+      if (!cachedCategories.length) {
+        sel.innerHTML = '<option value="">No categories — add some first</option>';
+        return;
+      }
+      cachedCategories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.emoji || ''} ${c.label}`.trim();
+        if (c.id === currentVal) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  CARDS
+    // ─────────────────────────────────────────────────────
+    let editingCardId: string | null = null;
+
+    async function loadCards() {
+      const list = document.getElementById('cards-list')!;
+      list.innerHTML = '<div style="color:var(--muted);font-size:.78rem">Loading…</div>';
+      let items: any[] = [];
+      try {
+        items = await api('/api/admin/cards');
+      } catch (e: any) { toast('Error loading cards: ' + e.message, true); return; }
+
+      if (!items.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:.78rem">No cards yet.</div>';
+        document.getElementById('cards-count')!.textContent = '';
+        return;
+      }
+      document.getElementById('cards-count')!.textContent = `(${items.length})`;
+      list.innerHTML = '';
+      items.forEach(card => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <div class="item-emoji">${card.emoji || '🃏'}</div>
+          <div class="item-info">
+            <div class="item-title">${card.title}</div>
+            <div class="item-meta">${card.cat} · ${(card.stores||[]).length} stores · order ${card.sortOrder ?? '–'}</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn-edit">Edit</button>
+            <button class="btn-del">✕</button>
+          </div>`;
+        row.querySelector('.btn-edit')!.addEventListener('click', () => openCardForm(card));
+        row.querySelector('.btn-del')!.addEventListener('click', async () => {
+          if (confirm(`Delete "${card.title}"?`)) {
+            try {
+              await api(`/api/admin/cards/${card.id}`, { method: 'DELETE' });
+              toast('Card deleted'); loadCards(); loadDashboard();
+            } catch (e: any) { toast('Error: ' + e.message, true); }
+          }
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openCardForm(card: any = null) {
+      editingCardId = card ? card.id : null;
+      document.getElementById('card-form-panel')!.style.display = 'block';
+      document.getElementById('card-form-title')!.textContent = card ? 'Edit Card' : 'New Card';
+      (document.getElementById('cf-delete-btn') as HTMLElement).style.display = card ? 'inline-block' : 'none';
+
+      (document.getElementById('cf-id') as HTMLInputElement).value    = card?.id    || '';
+      (document.getElementById('cf-emoji') as HTMLInputElement).value = card?.emoji || '';
+      (document.getElementById('cf-order') as HTMLInputElement).value = card?.sortOrder ?? '';
+      (document.getElementById('cf-title') as HTMLInputElement).value = card?.title || '';
+      (document.getElementById('cf-desc') as HTMLTextAreaElement).value = card?.desc || '';
+      (document.getElementById('cf-id') as HTMLInputElement).disabled = !!card;
+
+      populateCatSelect(card?.cat || '');
+
+      const badgeVal = card?.badge || 'top';
+      (document.getElementById('cf-badge') as HTMLInputElement).value = badgeVal;
+      (document.getElementById('cf-badgelabel') as HTMLInputElement).value = card?.badgeLabel || "Editor's Pick";
+      document.querySelectorAll('#cf-badge-select .badge-opt').forEach(o => {
+        o.classList.toggle('sel', (o as HTMLElement).dataset.val === badgeVal);
+      });
+
+      buildStoresUI('cf-stores', card?.stores || [{ name: '', icon: '🛒', sub: '', url: '', topPick: true, costLevel: 2 }]);
+
+      document.getElementById('card-form-panel')!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.getElementById('new-card-btn')!.addEventListener('click', () => openCardForm());
+    document.getElementById('cf-cancel-btn')!.addEventListener('click', () => {
+      (document.getElementById('card-form-panel') as HTMLElement).style.display = 'none';
+    });
+    document.getElementById('cf-delete-btn')!.addEventListener('click', async () => {
+      if (editingCardId && confirm('Delete this card?')) {
+        try {
+          await api(`/api/admin/cards/${editingCardId}`, { method: 'DELETE' });
+          toast('Card deleted');
+          (document.getElementById('card-form-panel') as HTMLElement).style.display = 'none';
+          loadCards(); loadDashboard();
+        } catch (e: any) { toast('Error: ' + e.message, true); }
+      }
+    });
+
+    document.querySelectorAll('#cf-badge-select .badge-opt').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('#cf-badge-select .badge-opt').forEach(o => o.classList.remove('sel'));
+        opt.classList.add('sel');
+        (document.getElementById('cf-badge') as HTMLInputElement).value = (opt as HTMLElement).dataset.val!;
+        (document.getElementById('cf-badgelabel') as HTMLInputElement).value = (opt as HTMLElement).dataset.label!;
+      });
+    });
+
+    document.getElementById('add-store-btn')!.addEventListener('click', () => addStoreRow('cf-stores'));
+
+    document.getElementById('cf-save-btn')!.addEventListener('click', async () => {
+      const id    = (document.getElementById('cf-id') as HTMLInputElement).value.trim();
+      const title = (document.getElementById('cf-title') as HTMLInputElement).value.trim();
+      if (!id || !title) { toast('Card ID and Title are required', true); return; }
+
+      const payload = {
+        id,
+        cat: (document.getElementById('cf-cat') as HTMLSelectElement).value,
+        emoji: (document.getElementById('cf-emoji') as HTMLInputElement).value.trim(),
+        title,
+        desc: (document.getElementById('cf-desc') as HTMLTextAreaElement).value.trim(),
+        badge: (document.getElementById('cf-badge') as HTMLInputElement).value,
+        badgeLabel: (document.getElementById('cf-badgelabel') as HTMLInputElement).value,
+        sortOrder: parseInt((document.getElementById('cf-order') as HTMLInputElement).value) || 0,
+        stores: readStoresUI('cf-stores'),
+      };
+
+      const btn = document.getElementById('cf-save-btn') as HTMLButtonElement;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving…';
+      try {
+        await api('/api/admin/cards', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Card saved ✓');
+        (document.getElementById('card-form-panel') as HTMLElement).style.display = 'none';
+        loadCards(); loadDashboard();
+      } catch (e: any) { toast('Save failed: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save Card'; }
+    });
+
+    // ─────────────────────────────────────────────────────
+    //  STORE ROW BUILDER (reusable)
+    // ─────────────────────────────────────────────────────
+    function buildStoresUI(containerId: string, stores: any[]) {
+      const c = document.getElementById(containerId)!;
+      c.innerHTML = '';
+      (stores || []).forEach(s => addStoreRow(containerId, s));
+    }
+
+    function addStoreRow(containerId: string, store: any = {}) {
+      const c = document.getElementById(containerId)!;
+      const num = c.querySelectorAll('.store-row').length + 1;
+      const cost = store.costLevel || 2;
+      const row = document.createElement('div');
+      row.className = 'store-row';
+      row.innerHTML = `
+        <div class="store-row-header">
+          <div class="store-row-num">${num}</div>
+          <label class="top-pick-toggle">
+            <input type="checkbox" class="sr-top" ${store.topPick ? 'checked' : ''} /> Top Pick
+          </label>
+          <button class="remove-store" title="Remove">✕</button>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Store Name</label><input type="text" class="sr-name" value="${store.name||''}" placeholder="Myntra" /></div>
+          <div class="field"><label>Icon (emoji)</label><input type="text" class="sr-icon" value="${store.icon||''}" placeholder="🛒" /></div>
+          <div class="field"><label>Sub-label</label><input type="text" class="sr-sub" value="${store.sub||''}" placeholder="Best deals…" /></div>
+          <div class="field"><label>URL</label><input type="url" class="sr-url" value="${store.url||''}" placeholder="https://…" /></div>
+          <div class="field">
+            <label>Cost Level <span class="form-hint">(₹ = Budget · ₹₹ = Mid · ₹₹₹ = Premium)</span></label>
+            <div class="cost-level-select" style="display:flex;gap:6px;">
+              <div class="cost-opt ${cost==1?'sel':''}" data-val="1" style="padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid ${cost==1?'var(--border-gold)':'var(--border)'};background:${cost==1?'var(--gold-glow)':'transparent'};color:${cost==1?'var(--gold)':'var(--muted)'};" title="Budget">₹</div>
+              <div class="cost-opt ${cost==2?'sel':''}" data-val="2" style="padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid ${cost==2?'var(--border-gold)':'var(--border)'};background:${cost==2?'var(--gold-glow)':'transparent'};color:${cost==2?'var(--gold)':'var(--muted)'};" title="Mid-range">₹₹</div>
+              <div class="cost-opt ${cost==3?'sel':''}" data-val="3" style="padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid ${cost==3?'var(--border-gold)':'var(--border)'};background:${cost==3?'var(--gold-glow)':'transparent'};color:${cost==3?'var(--gold)':'var(--muted)'};" title="Premium">₹₹₹</div>
+            </div>
+            <input type="hidden" class="sr-cost" value="${cost}" />
+          </div>
+        </div>`;
+      row.querySelector('.remove-store')!.addEventListener('click', () => {
+        row.remove();
+        c.querySelectorAll('.store-row-num').forEach((n, i) => { n.textContent = String(i + 1); });
+      });
+      row.querySelectorAll('.cost-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+          row.querySelectorAll('.cost-opt').forEach(o => {
+            o.classList.remove('sel');
+            (o as HTMLElement).style.borderColor = 'var(--border)';
+            (o as HTMLElement).style.background = 'transparent';
+            (o as HTMLElement).style.color = 'var(--muted)';
+          });
+          opt.classList.add('sel');
+          (opt as HTMLElement).style.borderColor = 'var(--border-gold)';
+          (opt as HTMLElement).style.background = 'var(--gold-glow)';
+          (opt as HTMLElement).style.color = 'var(--gold)';
+          (row.querySelector('.sr-cost') as HTMLInputElement).value = (opt as HTMLElement).dataset.val!;
+        });
+      });
+      c.appendChild(row);
+    }
+
+    function readStoresUI(containerId: string) {
+      const c = document.getElementById(containerId)!;
+      return Array.from(c.querySelectorAll('.store-row')).map(row => ({
+        name:      (row.querySelector('.sr-name') as HTMLInputElement).value.trim(),
+        icon:      (row.querySelector('.sr-icon') as HTMLInputElement).value.trim(),
+        sub:       (row.querySelector('.sr-sub') as HTMLInputElement).value.trim(),
+        url:       (row.querySelector('.sr-url') as HTMLInputElement).value.trim(),
+        topPick:   (row.querySelector('.sr-top') as HTMLInputElement).checked,
+        costLevel: parseInt((row.querySelector('.sr-cost') as HTMLInputElement).value) || 2,
+      }));
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  TRENDING
+    // ─────────────────────────────────────────────────────
+    let editingTrendId: number | null = null;
+
+    async function loadTrending() {
+      const list = document.getElementById('trends-list')!;
+      let items: any[] = [];
+      try { items = await api('/api/admin/trending'); }
+      catch (e: any) { toast('Error loading trending: ' + e.message, true); return; }
+
+      if (!items.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:.78rem">No items yet.</div>';
+        document.getElementById('trends-count')!.textContent = '';
+        return;
+      }
+      document.getElementById('trends-count')!.textContent = `(${items.length})`;
+      list.innerHTML = '';
+      items.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <div class="item-emoji">${t.emoji || ''}</div>
+          <div class="item-info">
+            <div class="item-title">#${t.rank} ${t.name}</div>
+            <div class="item-meta">${t.meta || ''} · ${t.changeDir} ${t.changeVal || ''}</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn-edit">Edit</button>
+            <button class="btn-del">✕</button>
+          </div>`;
+        row.querySelector('.btn-edit')!.addEventListener('click', () => openTrendForm(t));
+        row.querySelector('.btn-del')!.addEventListener('click', async () => {
+          if (confirm(`Delete "${t.name}"?`)) {
+            try {
+              await api(`/api/admin/trending/${t.id}`, { method: 'DELETE' });
+              toast('Deleted'); loadTrending(); loadDashboard();
+            } catch (e: any) { toast('Error: ' + e.message, true); }
+          }
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openTrendForm(t: any = null) {
+      editingTrendId = t ? t.id : null;
+      document.getElementById('trend-form-panel')!.style.display = 'block';
+      document.getElementById('trend-form-title')!.textContent = t ? 'Edit Trending Item' : 'New Trending Item';
+      (document.getElementById('tf-delete-btn') as HTMLElement).style.display = t ? 'inline-block' : 'none';
+      (document.getElementById('tf-name') as HTMLInputElement).value  = t?.name      || '';
+      (document.getElementById('tf-emoji') as HTMLInputElement).value = t?.emoji     || '';
+      (document.getElementById('tf-url') as HTMLInputElement).value   = t?.url       || '';
+      (document.getElementById('tf-meta') as HTMLInputElement).value  = t?.meta      || '';
+      (document.getElementById('tf-rank') as HTMLInputElement).value  = t?.rank      ?? '';
+      (document.getElementById('tf-dir') as HTMLSelectElement).value  = t?.changeDir || 'up';
+      (document.getElementById('tf-val') as HTMLInputElement).value   = t?.changeVal || '';
+      document.getElementById('trend-form-panel')!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.getElementById('new-trend-btn')!.addEventListener('click', () => openTrendForm());
+    document.getElementById('tf-cancel-btn')!.addEventListener('click', () => {
+      (document.getElementById('trend-form-panel') as HTMLElement).style.display = 'none';
+    });
+    document.getElementById('tf-delete-btn')!.addEventListener('click', async () => {
+      if (editingTrendId && confirm('Delete?')) {
+        try {
+          await api(`/api/admin/trending/${editingTrendId}`, { method: 'DELETE' });
+          toast('Deleted');
+          (document.getElementById('trend-form-panel') as HTMLElement).style.display = 'none';
+          loadTrending(); loadDashboard();
+        } catch (e: any) { toast('Error: ' + e.message, true); }
+      }
+    });
+
+    document.getElementById('tf-save-btn')!.addEventListener('click', async () => {
+      const name = (document.getElementById('tf-name') as HTMLInputElement).value.trim();
+      if (!name) { toast('Name is required', true); return; }
+      const payload: any = {
+        name,
+        emoji: (document.getElementById('tf-emoji') as HTMLInputElement).value.trim(),
+        url:   (document.getElementById('tf-url') as HTMLInputElement).value.trim(),
+        meta:  (document.getElementById('tf-meta') as HTMLInputElement).value.trim(),
+        rank:  parseInt((document.getElementById('tf-rank') as HTMLInputElement).value) || 1,
+        changeDir: (document.getElementById('tf-dir') as HTMLSelectElement).value,
+        changeVal: (document.getElementById('tf-val') as HTMLInputElement).value.trim(),
+      };
+      if (editingTrendId) payload.id = editingTrendId;
+
+      const btn = document.getElementById('tf-save-btn') as HTMLButtonElement;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving…';
+      try {
+        await api('/api/admin/trending', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Saved ✓');
+        (document.getElementById('trend-form-panel') as HTMLElement).style.display = 'none';
+        loadTrending(); loadDashboard();
+      } catch (e: any) { toast('Error: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save'; }
+    });
+
+    // ─────────────────────────────────────────────────────
+    //  TOP PICKS
+    // ─────────────────────────────────────────────────────
+    let editingPickId: number | null = null;
+
+    async function loadTopPicks() {
+      const list = document.getElementById('picks-list')!;
+      let items: any[] = [];
+      try { items = await api('/api/admin/top-picks'); }
+      catch (e: any) { toast('Error loading top picks: ' + e.message, true); return; }
+
+      if (!items.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:.78rem">No picks yet.</div>';
+        document.getElementById('picks-count')!.textContent = '';
+        return;
+      }
+      document.getElementById('picks-count')!.textContent = `(${items.length})`;
+      list.innerHTML = '';
+      items.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <div class="item-emoji">${p.emoji || ''}</div>
+          <div class="item-info">
+            <div class="item-title">${p.title}</div>
+            <div class="item-meta">${p.cat || ''} · ${p.store?.name || '–'}</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn-edit">Edit</button>
+            <button class="btn-del">✕</button>
+          </div>`;
+        row.querySelector('.btn-edit')!.addEventListener('click', () => openPickForm(p));
+        row.querySelector('.btn-del')!.addEventListener('click', async () => {
+          if (confirm(`Delete "${p.title}"?`)) {
+            try {
+              await api(`/api/admin/top-picks/${p.id}`, { method: 'DELETE' });
+              toast('Deleted'); loadTopPicks(); loadDashboard();
+            } catch (e: any) { toast('Error: ' + e.message, true); }
+          }
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openPickForm(p: any = null) {
+      editingPickId = p ? p.id : null;
+      document.getElementById('pick-form-panel')!.style.display = 'block';
+      document.getElementById('pick-form-title')!.textContent = p ? 'Edit Top Pick' : 'New Top Pick';
+      (document.getElementById('pf-delete-btn') as HTMLElement).style.display = p ? 'inline-block' : 'none';
+      (document.getElementById('pf-cat') as HTMLInputElement).value   = p?.cat         || '';
+      (document.getElementById('pf-emoji') as HTMLInputElement).value = p?.emoji       || '';
+      (document.getElementById('pf-order') as HTMLInputElement).value = p?.sortOrder   ?? '';
+      (document.getElementById('pf-title') as HTMLInputElement).value = p?.title       || '';
+      (document.getElementById('pf-desc') as HTMLTextAreaElement).value = p?.desc      || '';
+      (document.getElementById('pf-sname') as HTMLInputElement).value = p?.store?.name || '';
+      (document.getElementById('pf-sicon') as HTMLInputElement).value = p?.store?.icon || '';
+      (document.getElementById('pf-ssub') as HTMLInputElement).value  = p?.store?.sub  || '';
+      (document.getElementById('pf-surl') as HTMLInputElement).value  = p?.store?.url  || '';
+      document.getElementById('pick-form-panel')!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.getElementById('new-pick-btn')!.addEventListener('click', () => openPickForm());
+    document.getElementById('pf-cancel-btn')!.addEventListener('click', () => {
+      (document.getElementById('pick-form-panel') as HTMLElement).style.display = 'none';
+    });
+    document.getElementById('pf-delete-btn')!.addEventListener('click', async () => {
+      if (editingPickId && confirm('Delete?')) {
+        try {
+          await api(`/api/admin/top-picks/${editingPickId}`, { method: 'DELETE' });
+          toast('Deleted');
+          (document.getElementById('pick-form-panel') as HTMLElement).style.display = 'none';
+          loadTopPicks(); loadDashboard();
+        } catch (e: any) { toast('Error: ' + e.message, true); }
+      }
+    });
+
+    document.getElementById('pf-save-btn')!.addEventListener('click', async () => {
+      const title = (document.getElementById('pf-title') as HTMLInputElement).value.trim();
+      if (!title) { toast('Title required', true); return; }
+      const payload: any = {
+        cat: (document.getElementById('pf-cat') as HTMLInputElement).value.trim(),
+        emoji: (document.getElementById('pf-emoji') as HTMLInputElement).value.trim(),
+        sortOrder: parseInt((document.getElementById('pf-order') as HTMLInputElement).value) || 0,
+        title,
+        desc: (document.getElementById('pf-desc') as HTMLTextAreaElement).value.trim(),
+        store: {
+          name: (document.getElementById('pf-sname') as HTMLInputElement).value.trim(),
+          icon: (document.getElementById('pf-sicon') as HTMLInputElement).value.trim(),
+          sub:  (document.getElementById('pf-ssub') as HTMLInputElement).value.trim(),
+          url:  (document.getElementById('pf-surl') as HTMLInputElement).value.trim(),
+        },
+      };
+      if (editingPickId) payload.id = editingPickId;
+
+      const btn = document.getElementById('pf-save-btn') as HTMLButtonElement;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving…';
+      try {
+        await api('/api/admin/top-picks', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Saved ✓');
+        (document.getElementById('pick-form-panel') as HTMLElement).style.display = 'none';
+        loadTopPicks(); loadDashboard();
+      } catch (e: any) { toast('Error: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save'; }
+    });
+
+    // ─────────────────────────────────────────────────────
+    //  SPOTLIGHT (singleton)
+    // ─────────────────────────────────────────────────────
+    async function loadSpotlight() {
+      try {
+        const s = await api('/api/admin/spotlight');
+        (document.getElementById('sl-title') as HTMLInputElement).value = s.title || '';
+        (document.getElementById('sl-desc') as HTMLTextAreaElement).value = s.desc || '';
+        buildStoresUI('sl-stores', s.stores && s.stores.length ? s.stores : [{ name: '', icon: '', sub: '', url: '', topPick: true }]);
+      } catch (e: any) { toast('Error loading spotlight: ' + e.message, true); }
+    }
+
+    document.getElementById('sl-add-store-btn')!.addEventListener('click', () => addStoreRow('sl-stores'));
+
+    document.getElementById('sl-save-btn')!.addEventListener('click', async () => {
+      const btn = document.getElementById('sl-save-btn') as HTMLButtonElement;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving…';
+      try {
+        await api('/api/admin/spotlight', {
+          method: 'POST',
+          body: JSON.stringify({
+            title: (document.getElementById('sl-title') as HTMLInputElement).value.trim(),
+            desc: (document.getElementById('sl-desc') as HTMLTextAreaElement).value.trim(),
+            stores: readStoresUI('sl-stores'),
+          }),
+        });
+        toast('Spotlight saved ✓');
+      } catch (e: any) { toast('Error: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save Spotlight'; }
+    });
+
+    // ─────────────────────────────────────────────────────
+    //  HEAT CATEGORIES
+    // ─────────────────────────────────────────────────────
+    let editingHeatId: number | null = null;
+
+    async function loadHeat() {
+      const list = document.getElementById('heat-list')!;
+      let items: any[] = [];
+      try { items = await api('/api/admin/heat-categories'); }
+      catch (e: any) { toast('Error loading heat categories: ' + e.message, true); return; }
+
+      if (!items.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:.78rem">No categories yet.</div>';
+        document.getElementById('heat-count')!.textContent = '';
+        return;
+      }
+      document.getElementById('heat-count')!.textContent = `(${items.length})`;
+      list.innerHTML = '';
+      items.forEach(h => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <div class="item-emoji">${h.emoji || ''}</div>
+          <div class="item-info">
+            <div class="item-title">${h.name}</div>
+            <div class="item-meta">${h.activity}% activity</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn-edit">Edit</button>
+            <button class="btn-del">✕</button>
+          </div>`;
+        row.querySelector('.btn-edit')!.addEventListener('click', () => openHeatForm(h));
+        row.querySelector('.btn-del')!.addEventListener('click', async () => {
+          if (confirm(`Delete "${h.name}"?`)) {
+            try {
+              await api(`/api/admin/heat-categories/${h.id}`, { method: 'DELETE' });
+              toast('Deleted'); loadHeat(); loadDashboard();
+            } catch (e: any) { toast('Error: ' + e.message, true); }
+          }
+        });
+        list.appendChild(row);
+      });
+    }
+
+    function openHeatForm(h: any = null) {
+      editingHeatId = h ? h.id : null;
+      document.getElementById('heat-form-panel')!.style.display = 'block';
+      document.getElementById('heat-form-title')!.textContent = h ? 'Edit Heat Category' : 'New Heat Category';
+      (document.getElementById('hf-delete-btn') as HTMLElement).style.display = h ? 'inline-block' : 'none';
+      (document.getElementById('hf-name') as HTMLInputElement).value     = h?.name     || '';
+      (document.getElementById('hf-emoji') as HTMLInputElement).value    = h?.emoji    || '';
+      (document.getElementById('hf-activity') as HTMLInputElement).value = h?.activity ?? '';
+      (document.getElementById('hf-color') as HTMLInputElement).value    = h?.barColor || 'var(--gold)';
+      document.getElementById('heat-form-panel')!.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.getElementById('new-heat-btn')!.addEventListener('click', () => openHeatForm());
+    document.getElementById('hf-cancel-btn')!.addEventListener('click', () => {
+      (document.getElementById('heat-form-panel') as HTMLElement).style.display = 'none';
+    });
+    document.getElementById('hf-delete-btn')!.addEventListener('click', async () => {
+      if (editingHeatId && confirm('Delete?')) {
+        try {
+          await api(`/api/admin/heat-categories/${editingHeatId}`, { method: 'DELETE' });
+          toast('Deleted');
+          (document.getElementById('heat-form-panel') as HTMLElement).style.display = 'none';
+          loadHeat(); loadDashboard();
+        } catch (e: any) { toast('Error: ' + e.message, true); }
+      }
+    });
+
+    document.getElementById('hf-save-btn')!.addEventListener('click', async () => {
+      const name = (document.getElementById('hf-name') as HTMLInputElement).value.trim();
+      if (!name) { toast('Name required', true); return; }
+      const payload: any = {
+        name,
+        emoji: (document.getElementById('hf-emoji') as HTMLInputElement).value.trim(),
+        activity: parseInt((document.getElementById('hf-activity') as HTMLInputElement).value) || 0,
+        barColor: (document.getElementById('hf-color') as HTMLInputElement).value.trim() || 'var(--gold)',
+      };
+      if (editingHeatId) payload.id = editingHeatId;
+
+      const btn = document.getElementById('hf-save-btn') as HTMLButtonElement;
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Saving…';
+      try {
+        await api('/api/admin/heat-categories', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Saved ✓');
+        (document.getElementById('heat-form-panel') as HTMLElement).style.display = 'none';
+        loadHeat(); loadDashboard();
+      } catch (e: any) { toast('Error: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Save'; }
+    });
+
+    // ── Boot ──────────────────────────────────────────────
+    loadDashboard();
+  </script>
+)}
+</body>
+</html>
