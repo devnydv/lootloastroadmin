@@ -322,7 +322,9 @@ body {
   display: flex;
   flex-direction: column;
 }
-
+a{
+  text-decoration: none;
+}
 /* Explore More button (commented out in markup for now) */
 .explore-more-btn {
   display: block;
