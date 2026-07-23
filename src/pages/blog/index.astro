@@ -1,1 +1,149 @@
-<h1>the page is under development</h1>
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+
+<Layout>
+
+  <style>
+    .blog-hero { padding: 28px 20px 20px; }
+    .blog-hero h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; margin-bottom: 8px; }
+    .blog-hero h1 em { font-style: normal; color: var(--gold); }
+    .blog-hero p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; max-width: 320px; }
+
+    @media (min-width: 768px) {
+      .blog-hero { padding: 40px 0 24px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+      .blog-hero h1 { font-size: 2.6rem; }
+      .blog-hero p { max-width: 480px; font-size: 0.95rem; }
+      .chips-wrap { padding: 0 0 24px; overflow: visible; }
+      .chips { flex-wrap: wrap; justify-content: center; width: 100%; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      "name": "LootLo Blog",
+      "description": "Curated top-10 style shopping guides with honest picks and reasons why.",
+      "url": "https://lootlo.com/blog"
+    }
+  </script>
+
+
+
+
+
+<main class="main">
+
+  <!-- HERO -->
+  <div class="blog-hero">
+    <div class="eyebrow" style="display:inline-flex;align-items:center;gap:6px;background:var(--gold-glow);border:1px solid var(--border-gold);color:var(--gold);font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:14px;">📰 Guides</div>
+    <h1>The Loot<em>Lo</em> Blog</h1>
+    <p>Top-10 style shopping guides, ranked honestly, with a real reason behind every pick — no filler, no fake hype.</p>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="blog-search">
+    <span class="blog-search-icon">🔍</span>
+    <input type="text" id="blog-search-input" placeholder="Search guides — t-shirts, sneakers, skincare…" />
+  </div>
+
+  <!-- CATEGORY CHIPS -->
+  <div class="chips-wrap">
+    <div class="chips" id="category-chips">
+      <div class="chip active" data-category="All">All Guides</div>
+      <div class="chip" data-category="Fashion">👕 Fashion</div>
+      <div class="chip" data-category="Footwear">👟 Footwear</div>
+      <div class="chip" data-category="Beauty">🧴 Beauty</div>
+      <div class="chip" data-category="Tech">💻 Tech</div>
+    </div>
+  </div>
+
+  <!-- FEATURED -->
+  <a class="featured-post" id="featured-post" href="#"></a>
+
+  <!-- SECTION LABEL -->
+  <div class="section-label">
+    <h2>Latest Guides</h2>
+    <span id="results-count"></span>
+  </div>
+
+  <!-- GRID -->
+  <div class="blog-grid" id="blog-grid">
+    <a class="blog-card" href="blog-post.html?slug=top-10-tshirts-2026">
+      <div class="blog-card-img-wrap">
+        <img class="blog-card-img" src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=1200&amp;q=80" alt="Top 10 T-Shirts to Buy Right Now" loading="lazy">
+        <span class="blog-card-cat">👕 Fashion</span>
+      </div>
+      <div class="blog-card-body">
+        <div class="blog-card-title">Top 10 T-Shirts to Buy Right Now</div>
+        <div class="blog-card-excerpt">From everyday basics to statement prints — the 10 t-shirts actually worth your money this season, and exactly why each one earned its spot.</div>
+        <div class="blog-meta">
+          <span>📅 18 Jul 2026</span>
+          <span>⏱ 6 min read</span>
+          <span>📦 10 items</span>
+        </div>
+      </div>
+    </a>
+    <a class="blog-card" href="blog-post.html?slug=top-8-sneakers-under-2000">
+      <div class="blog-card-img-wrap">
+        <img class="blog-card-img" src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200&amp;q=80" alt="Top 8 Sneakers Under ₹2,000" loading="lazy">
+        <span class="blog-card-cat">👟 Footwear</span>
+      </div>
+      <div class="blog-card-body">
+        <div class="blog-card-title">Top 8 Sneakers Under ₹2,000</div>
+        <div class="blog-card-excerpt">Solid everyday sneakers that don't cross the ₹2,000 mark — tested for comfort, grip, and how they hold up after a few months of daily wear.</div>
+        <div class="blog-meta">
+          <span>📅 10 Jul 2026</span>
+          <span>⏱ 5 min read</span>
+          <span>📦 8 items</span>
+        </div>
+      </div>
+    </a>
+    <a class="blog-card" href="blog-post.html?slug=top-10-skincare-summer">
+      <div class="blog-card-img-wrap">
+        <img class="blog-card-img" src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=1200&amp;q=80" alt="Top 10 Skincare Picks for Summer" loading="lazy">
+        <span class="blog-card-cat">🧴 Beauty</span>
+      </div>
+      <div class="blog-card-body">
+        <div class="blog-card-title">Top 10 Skincare Picks for Summer</div>
+        <div class="blog-card-excerpt">Lightweight, non-greasy skincare that actually holds up in heat and humidity — from cleansers to SPF.</div>
+        <div class="blog-meta">
+          <span>📅 28 Jun 2026</span>
+          <span>⏱ 7 min read</span>
+          <span>📦 10 items</span>
+        </div>
+      </div>
+    </a>
+    <a class="blog-card" href="blog-post.html?slug=top-6-wfh-gadgets">
+      <div class="blog-card-img-wrap">
+        <img class="blog-card-img" src="https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?w=1200&amp;q=80" alt="Top 6 Work-From-Home Gadgets Worth Buying" loading="lazy">
+        <span class="blog-card-cat">💻 Tech</span>
+      </div>
+      <div class="blog-card-body">
+        <div class="blog-card-title">Top 6 Work-From-Home Gadgets Worth Buying</div>
+        <div class="blog-card-excerpt">The desk gadgets that actually improve a WFH setup — not just ones that look good in a webcam frame.</div>
+        <div class="blog-meta">
+          <span>📅 15 Jul 2026</span>
+          <span>⏱ 5 min read</span>
+          <span>📦 6 items</span>
+        </div>
+      </div>
+    </a></div>
+
+  <div class="blog-empty" id="blog-empty" hidden>
+    <div style="font-size:2rem;margin-bottom:10px;">🗂️</div>
+    <div style="font-weight:700;color:var(--text);margin-bottom:6px;">No guides found</div>
+    <div>Try a different search term or category.</div>
+  </div>
+
+  <button class="blog-load-more" id="load-more-btn" hidden>Load more guides</button>
+
+  
+
+</main>
+
+
+
+</Layout>
