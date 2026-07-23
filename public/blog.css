@@ -480,7 +480,12 @@
 
 /* ── DESKTOP ── */
 @media (min-width: 768px) {
-  .blog-search { margin: 0 0 20px; max-width: 480px; }
+  .blog-search { 
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 480px;
+}
   .featured-post { margin: 0 0 24px; }
   .featured-img { height: 280px; }
   .blog-grid { padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; align-items: stretch; }
