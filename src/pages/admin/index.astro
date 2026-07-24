@@ -505,7 +505,7 @@ const loginFailed = Astro.url.searchParams.get('error') === '1';
       (document.getElementById('cf-emoji') as HTMLInputElement).value = card?.emoji || '';
       (document.getElementById('cf-order') as HTMLInputElement).value = card?.sortOrder ?? '';
       (document.getElementById('cf-title') as HTMLInputElement).value = card?.title || '';
-      (document.getElementById('cf-desc') as HTMLTextAreaElement).value = card?.desc || '';
+      (document.getElementById('cf-desc') as HTMLTextAreaElement).value = card?.description || '';
       (document.getElementById('cf-id') as HTMLInputElement).disabled = !!card;
 
       populateCatSelect(card?.cat || '');
@@ -558,7 +558,7 @@ const loginFailed = Astro.url.searchParams.get('error') === '1';
         cat: (document.getElementById('cf-cat') as HTMLSelectElement).value,
         emoji: (document.getElementById('cf-emoji') as HTMLInputElement).value.trim(),
         title,
-        desc: (document.getElementById('cf-desc') as HTMLTextAreaElement).value.trim(),
+        description: (document.getElementById('cf-desc') as HTMLTextAreaElement).value.trim(),
         badge: (document.getElementById('cf-badge') as HTMLInputElement).value,
         badgeLabel: (document.getElementById('cf-badgelabel') as HTMLInputElement).value,
         sortOrder: parseInt((document.getElementById('cf-order') as HTMLInputElement).value) || 0,

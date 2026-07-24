@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ cookies }) => {
     cat: row.cat,
     emoji: row.emoji,
     title: row.title,
-    desc: row.desc,
+    description: row.description,
     badge: row.badge,
     badgeLabel: row.badge_label,
     sortOrder: row.sort_order,
