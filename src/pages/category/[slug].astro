@@ -4,7 +4,7 @@ export const prerender = false;
 import Layout from '../../layouts/Layout.astro';
 import DealsFeed from '../../components/DealsFeed.astro';
 import { getCategories, getCards } from '../../lib/lootlo-queries';
-import '../../styles/style.css';
+
 
 const { slug } = Astro.params;
 const PAGE_SIZE = 8;
